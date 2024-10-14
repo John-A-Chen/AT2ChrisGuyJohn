@@ -1,4 +1,5 @@
 hold on
+lighting gouraud
 PlaceObject('TitanLink0.PLY');
 PlaceObject('TitanLink1.PLY');
 PlaceObject('TitanLink2.PLY');

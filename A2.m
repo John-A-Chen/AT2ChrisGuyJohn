@@ -1,36 +1,39 @@
 classdef A2
     properties
-        totalTime                                                        % store the total elapsed time
-        r;                                                               % linearUR3e
+        totalTime  
+        r;
+        r2;
+        S = 5;  
     end
     methods
         function self = A2()
-            tic; % Start the timer
+            tic; 
             self.totalTime = tic;
-            clf;                                                         % Constructor (this is like main)
+            clf;  
             axis equal;
             hold on;
             view(3);
-            axis ([-2 2 -2 2 0 2]);
-            xlim([-2 2]); ylim([-2 2]); zlim([0 2]);
-            self.r = DobotMagician();                  
+            axis ([-self.S, self.S, -self.S, self.S, 0, self.S]);
+            xlim([-self.S, self.S]); 
+            ylim([-self.S, self.S]); 
+            zlim([0, self.S]);
+            self.r = DobotMagician(transl(0, 2, 0.05));
+            self.r2 = SigmaKukaTitan(transl(0, -2, 0.05));  
             self.setupEnvironment();
-
-            disp('arbituary comment!');
-            elapsedTime = toc(self.totalTime);                           % total elapsed time
+            disp('Arbitrary comment!');
+            elapsedTime = toc(self.totalTime); 
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
         end
-
-        function setupEnvironment(~)
-
-            surf([-5,-5;4,4], [-3,3;-3,3], [0,0;0,0], 'CData', ...       % create the floor surface
-                imread('concrete.jpg'), 'FaceColor', 'texturemap');
-
-            surf([4,4;4,4], [-3,3;-3,3], [3, 3; 0,0], 'CData', ...       % create the wall surface 1
-                imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
-
-            surf([-5,4;-5,4], [3,3;3,3], [3, 3; 0,0], 'CData', ...       % create the wall surface 2
-                imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
+        function setupEnvironment(self)
+            surf([-self.S, -self.S; self.S, self.S], ...
+                [-self.S, self.S; -self.S, self.S], [0, 0; 0, 0], ...
+                'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
+            surf([self.S, self.S; self.S, self.S], ...
+                [-self.S, self.S; -self.S, self.S], [self.S, self.S; 0, 0], ...
+                'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
+            surf([-self.S, self.S; -self.S, self.S], ...
+                [self.S, self.S; self.S, self.S], [self.S, self.S; 0, 0], ...
+                'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
         end
     end
 end
