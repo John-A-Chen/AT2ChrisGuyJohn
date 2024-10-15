@@ -2,7 +2,6 @@ classdef KukaTitan < RobotBaseClass
     properties(Access = public)
         plyFileNameStem = 'Titan2';
     end
-
     methods
         %% Define robot Function
         function self = KukaTitan(baseTr)
@@ -11,13 +10,9 @@ classdef KukaTitan < RobotBaseClass
                 baseTr = eye(4);
             end
             self.model.base = self.model.base.T * baseTr;
-            % self.model.plot(zeros(6));
             self.PlotAndColourRobot();
-            % axis([-10, 10, -10, 10, -10, 10]);
             axis([-5, 5, -5, 5, -1, 6]);
             % hold on
-            % PlaceObject('KUKATitanLink0.PLY');
-            % PlaceObject('KUKATitanLink1.PLY');
         end
         %% CreateModel
         function CreateModel(self)
