@@ -6,7 +6,7 @@ classdef A2 < handle
         q_ur3e;
         titan;
         q_titan;
-        stoped = false;
+        stopped = false;
 
         s1;
         s2;
@@ -33,15 +33,15 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.ur3e = UR3e(transl(0, 2, 0.05));
             % self.q_ur3e = zeros(1,6);
-            self.titan = KukaTitan(transl(0, -2, 0.05));
+            self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime); 
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
-            self.DLS();
+            
 
-            % self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
-            % self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
+            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
         end
 
         function setupEnvironment(self)
@@ -73,13 +73,15 @@ classdef A2 < handle
         function sequence(self, source, ~)
             delete(source);
             delete(self.b1);
+            
             self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
+            self.DLS();
             
         end
 
         function DLS(self)
             t = 10;                    % Total time in seconds
-            steps = 600;                % No. of steps
+            steps = 200;                % No. of steps
             deltaT = t/steps;           % Discrete time step
             deltaTheta = 4*pi/steps;    % Small angle change
             qMatrix = zeros(steps,6);   % Assign memory for joint angles
@@ -87,8 +89,8 @@ classdef A2 < handle
             m = zeros(1,steps);         % For recording measure of manipulability
             errorValue = zeros(3,steps);% For recording velocity error
             lambda = 0;
-            lambdaMax = 0.2;
-            epsilon = 0.;
+            lambdaMax = 0.05;
+            epsilon = 0.5;
 
             for i = 1:steps
                 x(:,i) = [1.5*cos(deltaTheta*i) + 0.45*cos(deltaTheta*i)
@@ -114,6 +116,9 @@ classdef A2 < handle
                 errorValue(:,i) = xdot - J*qdot; % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';         % Update the joint state
                 self.titan.model.plot(qMatrix(i+1,:));
+                if self.stopped
+                    return
+                end
             end
         end
 
@@ -129,6 +134,7 @@ classdef A2 < handle
 
         function eStop(self, source, ~)
             disp("E has been stopped");
+            self.stopped = true;
 
             delete(source);
             delete(self.s1);

@@ -6,7 +6,7 @@ classdef A2 < handle
         q_ur3e;
         titan;
         q_titan;
-        stoped = false;
+        stopped = false;
 
         s1;
         s2;
@@ -33,15 +33,15 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.ur3e = UR3e(transl(0, 2, 0.05));
             % self.q_ur3e = zeros(1,6);
-            self.titan = KukaTitan(transl(0, -2, 0.05));
+            self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime); 
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
-            self.DLS();
+            
 
-            % self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
-            % self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
+            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
         end
 
         function setupEnvironment(self)
@@ -57,6 +57,7 @@ classdef A2 < handle
         end
 
         function freeControl(self, source, ~)
+            self.stopped = false;
             delete(source);
             delete(self.b2)
             sliderProperties = struct('Style', 'slider', 'Value', 0, 'SliderStep', [0.01 0.2], 'Callback', @self.updateJoints);
@@ -71,9 +72,12 @@ classdef A2 < handle
         end
 
         function sequence(self, source, ~)
+            self.stopped = false;
             delete(source);
             delete(self.b1);
+            
             self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
+            self.DLS();
             
         end
 
@@ -93,7 +97,7 @@ classdef A2 < handle
             for i = 1:steps
                 x(:,i) = [1.5*cos(deltaTheta*i) + 0.45*cos(deltaTheta*i)
                           1.5*sin(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                          0.5];
+                          3];
             end
 
             qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)));
@@ -114,6 +118,11 @@ classdef A2 < handle
                 errorValue(:,i) = xdot - J*qdot; % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';         % Update the joint state
                 self.titan.model.plot(qMatrix(i+1,:));
+                disp(i)
+                self.q_titan = qMatrix(i+1,:);
+                if self.stopped
+                    break
+                end
             end
         end
 
@@ -129,6 +138,7 @@ classdef A2 < handle
 
         function eStop(self, source, ~)
             disp("E has been stopped");
+            self.stopped = true;
 
             delete(source);
             delete(self.s1);
