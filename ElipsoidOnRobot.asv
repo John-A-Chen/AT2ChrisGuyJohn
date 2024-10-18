@@ -17,16 +17,16 @@ radii = [0.1,0.1,0.15];
 [X,Y,Z] = ellipsoid( centerPoint(1), centerPoint(2), centerPoint(3), radii(1), radii(2), radii(3) );
 
 
-for i = 1:4
-    robot.model.points{i} = [X(:),Y(:),Z(:)];
-    % warning off
-    robot.model.faces{i} = delaunay(robot.model.points{i});
-    % warning on;
-end
+
+robot.model.points{1} = [X(:),Y(:),Z(:)];
+warning off
+robot.model.faces{1} = delaunay(robot.model.points{1});    
+warning on;
+
 
 
 robot.model.plot3d([0,0,0,0,0,0]);
-% axis equal
-% camlight
+axis equal
+camlight
 
 robot.model.teach;
