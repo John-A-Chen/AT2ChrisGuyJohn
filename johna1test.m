@@ -23,11 +23,10 @@ classdef johna1test
 
         function setupEnvironment(~)
             tic
-            surf([-3,-3;3,3], [-3,3;-3,3], [0,0;0,0], 'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
-            surf([3,3;3,3], [-3,3;-3,3], [3, 3; 0,0], 'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
-            surf([-3,3;-3,3], [3,3;3,3], [3, 3; 0,0], 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
+            surf([-3,-3;3,3], [-3,3;-3,3], [0,0;0,0], 'CData', imread('DSC03374.jpg'), 'FaceColor', 'texturemap');
+            surf([3,3;3,3], [-3,5;-3,5], [5, 5; 0,0], 'CData', imread('DSC03375.jpg'), 'FaceColor', 'texturemap');
+            surf([-3,3;-3,3], [3,3;3,3], [5, 5; 0,0], 'CData', imread('DSC03376.jpg'), 'FaceColor', 'texturemap');
 
-            PlaceObject('fireExtinguisher.ply', [0, 1, 0.01]);
             PlaceObject('fireExtinguisher.ply', [0, -1, 0.01]);
             PlaceObject('fireExtinguisher.ply', [1.5, 0, 0.01]);
             PlaceObject('fireExtinguisher.ply', [-1.5, 0, 0.01]);
@@ -37,30 +36,28 @@ classdef johna1test
 
         function BotBuilder(self)
             tic;
-            lighting gouraud;
+            lighting flat;
 
             startPositions = [
-                1.5, 1.8, 0.05;
-                -1.2, 2.1, 0.05;
-                0.9, -1.9, 0.05;
-                -2.5, 0.7, 0.05;
-                2.3, -0.9, 0.05;
-                -1.8, -1.6, 0.05
-                ];
+                1.5, 1.8, 0.05 + 1;
+                -1.2, 2.1, 0.05 + 1;
+                0.9, -1.9, 0.05 + 1;
+                -2.5, 0.7, 0.05 + 1;
+                2.3, -0.9, 0.05 + 1;
+                -1.8, -1.6, 0.05 + 1];
 
             endPositions = [
-                0, 1, 0.1807;
-                -0.6127, 1, 0.1807;
-                -1.1843, 1, 0.1807;
-                -1.1843, 1, 0.35485;
-                -1.1843, 1, 0.4747;
-                -1.1843, 1, 0.59125
-                ];
+                0, -2, 0.15185;
+                -0.24355, -2, 0.15185;
+                -0.45675, -2, 0.15185;
+                -0.45675, -2-0.11235, 0.15185;
+                -0.45675, -2-0.11235, 0.0665;
+                -0.45675, -2-0.19425, 0.0665];
 
             hLinks = cell(1, 6);
 
             for i = 1:6
-                hLinks{i} = PlaceObject(['UR10eLink', num2str(i-1), '.ply'], startPositions(i, :));
+                hLinks{i} = PlaceObject(['ur3eLink', num2str(i-1), 'a.ply'], startPositions(i, :));
             end
 
             numSteps = 50;
@@ -91,12 +88,12 @@ classdef johna1test
 
                 disp(['Placing link ', num2str(i)]);
 
-                linkVertices = get(hLinks{i}, 'Vertices'); 
+                linkVertices = get(hLinks{i}, 'Vertices');
                 newVertices = linkVertices + (endPositions(i, :) - startPositions(i, :));
                 set(hLinks{i}, 'Vertices', newVertices);
             end
 
-            home = transl(1.1, 0, 4.137);
+            home = transl(0.6, 0, 4.137);
             qHome = self.r.model.ikcon(home);
             tHome = jtraj(whereRobot, qHome, numSteps);
 
