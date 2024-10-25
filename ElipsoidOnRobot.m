@@ -2,20 +2,18 @@ clear all;
 close all
 clc
 
-robot = UR3;
+%axis([-2 2 -2 2 0 2]);
+axis equal
+view(3);  % Set the view to 3D
+grid on;
 
-% L1 = Link('d',0,'a',1,'alpha',0,'qlim',[-pi pi])
-% L2 = Link('d',0,'a',1,'alpha',0,'qlim',[-pi pi])
-% L3 = Link('d',0,'a',1,'alpha',0,'qlim',[-pi pi])        
-% robot = SerialLink([L1 L2 L3],'name','myRobot');  
-
-
-
+robot = UR3e;
+%robot.model.base()
+ 
 % New values for the ellipsoid (guessed these, need proper model to work out correctly)
-centerPoint = [0,0,0.075];
-radii = [0.1,0.1,0.15];
+centerPoint = [0,0,0];
+radii = [0.2,0.05,0.1];    % change to for loop for different sized elipsoids
 [X,Y,Z] = ellipsoid( centerPoint(1), centerPoint(2), centerPoint(3), radii(1), radii(2), radii(3) );
-
 
 for i = 1:4
     robot.model.points{i} = [X(:),Y(:),Z(:)];
@@ -25,8 +23,10 @@ for i = 1:4
 end
 
 
+%%robot.model.plot3d([0,0,0,0,0,0]);
+%%robot.model.plot([0,0,0,0,0,0]);
 robot.model.plot3d([0,0,0,0,0,0]);
 % axis equal
 % camlight
 
-robot.model.teach;
+robot.model.teach;  
