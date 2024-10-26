@@ -58,12 +58,25 @@ classdef johna1test
                 -0.45675, -2.11235, 0.0665;
                 -0.45675, -2.19425, 0.0665];
 
-            hLinks = cell(1, 7);
+            % hLinks = cell(1, 7);
+            % 
+            % for i = 1:7
+            %     hLinks{i} = PlaceObject(['ur3eLink', num2str(i-1), 'a.ply'], startPositions(i, :));
+            % end
 
-            for i = 1:7
-                hLinks{i} = PlaceObject(['ur3eLink', num2str(i-1), 'a.ply'], startPositions(i, :));
+            hLink0  = cell(1, size(startPositions, 1));                
+            for i = 1:size(startPositions, 1)
+                hLink0{i} = PlaceObject('UR3eLink0a.ply', startPositions(i, :));
             end
-
+            Link0Origin = PlaceObject('UR3eLink0a.ply', [0,0,0]);       
+            vertices0 = get(Link0Origin, 'Vertices');                     
+            delete(Link0Origin);     
+            
+            hLink1  = cell(1, size(startPositions, 1));                
+            for i = 1:size(startPositions, 1)
+                hLink1{i} = PlaceObject('UR3eLink1a.ply', startPositions(i, :));
+            end
+z
             numSteps = 50;
             disp("Welcome to Unpaid Worker");
 
@@ -92,9 +105,33 @@ classdef johna1test
 
                 disp(['Placing link ', num2str(i)]);
 
-                linkVertices = get(hLinks{i}, 'Vertices');
-                newVertices = linkVertices + (endPositions(i, :) - startPositions(i, :));
-                set(hLinks{i}, 'Vertices', newVertices);
+                link0Vertices = get(hLink0{i}, 'Vertices');
+                newVertices = link0Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink0{i}, 'Vertices', newVertices);
+
+                link1Vertices = get(hLink1{i}, 'Vertices');
+                newVertices = link1Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink1{i}, 'Vertices', newVertices);
+
+                link2Vertices = get(hLink2{i}, 'Vertices');
+                newVertices = link2Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink2{i}, 'Vertices', newVertices);
+
+                link3Vertices = get(hLink3{i}, 'Vertices');
+                newVertices = link3Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink3{i}, 'Vertices', newVertices);
+
+                link4Vertices = get(hLink4{i}, 'Vertices');
+                newVertices = link4Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink4{i}, 'Vertices', newVertices);
+
+                link5Vertices = get(hLink5{i}, 'Vertices');
+                newVertices = link5Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink5{i}, 'Vertices', newVertices);
+
+                link6Vertices = get(hLink6{i}, 'Vertices');
+                newVertices = link6Vertices + (endPositions(i, :) - startPositions(i, :));
+                set(hLink6{i}, 'Vertices', newVertices);
             end
 
             home = transl(0.6, 0, 4.137);

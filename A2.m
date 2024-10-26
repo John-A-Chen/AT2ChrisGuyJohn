@@ -31,15 +31,14 @@ classdef A2 < handle
             xlim([-self.S, self.S]); 
             ylim([-self.S, self.S]); 
             zlim([0, self.S]);
-            % self.ur3e = UR3e(transl(0, 2, 0.05));
-            % self.q_ur3e = zeros(1,6);
+            self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
+            self.q_ur3e = zeros(1,6);
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime); 
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
             
-
             self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
             self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
         end
@@ -54,6 +53,8 @@ classdef A2 < handle
             surf([-self.S, self.S; -self.S, self.S], ...
                 [self.S, self.S; self.S, self.S], [self.S, self.S; 0, 0], ...
                 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
+            PlaceObject('environment.PLY',[0,0,0]);
+
         end
 
         function freeControl(self, source, ~)

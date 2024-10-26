@@ -11,7 +11,7 @@ classdef KukaTitan < RobotBaseClass
             end
             self.model.base = self.model.base.T * baseTr;
             self.PlotAndColourRobot();
-            axis([-2.5, 2.5, -2.5, 2.5, 0, 3]);
+            % axis([-2.5, 2.5, -2.5, 2.5, 0, 3]);
             % hold on
         end
         %% CreateModel
