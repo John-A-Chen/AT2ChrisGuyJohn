@@ -41,7 +41,7 @@ centerPoints = [
 ];
 
 radii = [
-    1, 1, 1; % Link 1
+    0.1, 0.1, 0.1; % Link 1
     0.14, 0.1, 0.14; % Link 2
     0.2, 0.1, 0.14; % Link 3
     0.1, 0.1, 0.1; % Link 4
@@ -50,7 +50,7 @@ radii = [
 ];
 
 % Loop through each link to create and attach ellipsoids
-for i = 2:6
+for i = 1:6
     [X, Y, Z] = ellipsoid(centerPoints(i,1), centerPoints(i,2), centerPoints(i,3), radii(i,1), radii(i,2), radii(i,3), 6); % Create the ellipsoid for the current link
     robot.model.points{i} = [X(:),Y(:),Z(:)]; % defines points for elipsoid triangulation (comment out to encapsulate links with a bug)
     robot.model.faces{i} = delaunay(robot.model.points{i}); % creates elipsoid faces
@@ -59,7 +59,7 @@ end
 
 
 % Plot the robot
-robot.model.plot3d([0 0 0 0 0 0]);
+%robot.model.plot3d([2 0 0 0 0 0]);
 axis equal
 camlight
 
@@ -69,7 +69,7 @@ camlight
 
 q = robot.model.getpos()
 
-tr = zeros(4,4,robot.model.n);
+tr = zeros(4,4,robot.model.n+1);
 tr(:,:,1) = robot.model.base;
 L = robot.model.links;
 for i = 1 : robot.model.n
