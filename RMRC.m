@@ -1,5 +1,5 @@
 % 1.1) Set parameters for the simulation
-mdl_KR1000;        % Load robot model
+titan = KukaTitan;        % Load robot model
 t = 1;              % Total time for one direction (s)
 deltaT = 0.02;      % Control frequency
 steps = t/deltaT;   % Number of steps for one direction
@@ -43,11 +43,11 @@ end
 
 T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1];   % Transformation of first point
 q0 = zeros(1,6);                                                      % Initial guess for joint angles
-qMatrix(1,:) = kr1000.ikcon(T,q0);                                       % Solve joint angles to achieve first waypoint
+qMatrix(1,:) = titan.model.ikcon(T,q0);                                       % Solve joint angles to achieve first waypoint
 
 % 1.4) Track the trajectory with RMRC
 for i = 1:total_steps-1
-    T = kr1000.fkine(qMatrix(i,:)).T;                                  % Get forward transformation at current joint state
+    T = titan.model.fkine(qMatrix(i,:)).T;                                  % Get forward transformation at current joint state
     deltaX = x(:,i+1) - T(1:3,4);                                    % Position error from next waypoint
     Rd = rpy2r(theta(1,i+1),theta(2,i+1),theta(3,i+1));              % Desired rotation matrix
     Ra = T(1:3,1:3);                                                 % Current end-effector rotation matrix
@@ -57,7 +57,7 @@ for i = 1:total_steps-1
     angular_velocity = [S(3,2); S(1,3); S(2,1)];                     % Angular velocity
     deltaTheta = tr2rpy(Rd*Ra');                                      % RPY angle error
     xdot = W*[linear_velocity; angular_velocity];                    % End-effector velocity
-    J = kr1000.jacob0(qMatrix(i,:));                                   % Jacobian at current state
+    J = titan.model.jacob0(qMatrix(i,:));                                   % Jacobian at current state
     m(i) = sqrt(det(J*J'));                                          % Manipulability measure
     if m(i) < epsilon                                                % DLS damping if manipulability is low
         lambda = (1 - m(i)/epsilon)*5E-2;
@@ -69,9 +69,9 @@ for i = 1:total_steps-1
 
     % Joint limit checks
     for j = 1:6
-        if qMatrix(i,j) + deltaT*qdot(i,j) < kr1000.qlim(j,1)
+        if qMatrix(i,j) + deltaT*qdot(i,j) < titan.model.qlim(j,1)
             qdot(i,j) = 0;                                           % Stop motor if below joint limit
-        elseif qMatrix(i,j) + deltaT*qdot(i,j) > kr1000.qlim(j,2)
+        elseif qMatrix(i,j) + deltaT*qdot(i,j) > titan.model.qlim(j,2)
             qdot(i,j) = 0;                                           % Stop motor if above joint limit
         end
     end
@@ -83,8 +83,15 @@ end
 
 % Plot the robot movement
 tic
-figure(1)
-plot3(x(1,:),x(2,:),x(3,:),'k.','LineWidth',1)
-kr1000.plot(qMatrix,'trail','r-')
+hold on
+% figure(1)
+% plot3(x(1,:),x(2,:),x(3,:),'k.','LineWidth',1)
+% titan.model.plot(qMatrix,'trail','r-')
+
+for i = 1:total_steps
+    titan.model.animate(qMatrix(i,:));
+    plot3(x(1,i), x(2,i), x(3,i), 'k.');
+    drawnow
+end
 
 disp(['Plot took ', num2str(toc), ' seconds'])
