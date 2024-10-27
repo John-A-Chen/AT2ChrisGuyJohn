@@ -69,14 +69,21 @@ camlight
 
 q = robot.model.getpos()
 
-centerPoint = [0 0 0];
+tr = zeros(4,4,robot.model.n);
+tr(:,:,1) = robot.model.base;
+L = robot.model.links;
+for i = 1 : robot.model.n
+    tr(:,:,i+1) = tr(:,:,i) * trotz(q(i)) * transl(0,0,L(i).d) * transl(L(i).a,0,0) * trotx(L(i).alpha);
+end
 
-tr = robot.model.fkine(q).T;
-cubePointsAndOnes = [inv(tr) * [cubePoints,ones(size(cubePoints,1),1)]']';
-updatedCubePoints = cubePointsAndOnes(:,1:3);
-algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoint, radii);
-pointsInside = find(algebraicDist < 1);
-disp(['2.9: There are ', num2str(size(pointsInside,1)),' points inside']);
+for i = 1: size(tr,3)
+    cubePointsAndOnes = [inv(tr(:,:,i)) * [cubePoints,ones(size(cubePoints,1),1)]']';
+    updatedCubePoints = cubePointsAndOnes(:,1:3);
+    algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
+    pointsInside = find(algebraicDist < 1);
+    disp(['2.10: There are ', num2str(size(pointsInside,1)),' points inside the ',num2str(i),'th ellipsoid']);
+end
+
 
 
 %% dist2pts
