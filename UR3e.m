@@ -29,8 +29,8 @@ classdef UR3e < RobotBaseClass
         %% CreateModel
         function CreateModel(self)
             link(1) = Link('d', 0.3037, 'a', 0,        'alpha', pi/2, 'qlim', deg2rad([-360 360]), 'offset', 0);
-            link(2) = Link('d', 0,      'a', -0.48710, 'alpha', 0,    'qlim', deg2rad([-360 360]), 'offset', -pi/2);
-            link(3) = Link('d', 0,      'a', -0.4264,  'alpha', 0,    'qlim', deg2rad([-360 360]), 'offset', 0);
+            link(2) = Link('d', 0,      'a', -0.48710, 'alpha', 0,    'qlim', deg2rad([-90 90]), 'offset', -pi/2);
+            link(3) = Link('d', 0,      'a', -0.4264,  'alpha', 0,    'qlim', deg2rad([-170 170]), 'offset', 0);
             link(4) = Link('d', 0.2247, 'a', 0,        'alpha', pi/2, 'qlim', deg2rad([-360 360]), 'offset', 0);
             link(5) = Link('d', 0.1707, 'a', 0,        'alpha', -pi/2,'qlim', deg2rad([-360,360]), 'offset', 0);
             link(6) = Link('d', 0.1638, 'a', 0,        'alpha', 0,    'qlim', deg2rad([-360,360]), 'offset', 0);
