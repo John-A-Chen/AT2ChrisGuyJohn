@@ -32,22 +32,15 @@ classdef A2 < handle
             xlim([-self.S, self.S]); 
             ylim([-self.S, self.S]); 
             zlim([0, self.S]);
-<<<<<<< Updated upstream
+            % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
             self.q_ur3e = zeros(1,6);
-=======
-            self.a = arduino;
-            % self.ur3e = UR3e(transl(0, 2, 0.05));
-            % self.q_ur3e = zeros(1,6);
->>>>>>> Stashed changes
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime); 
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
-            
-            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
-            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
+            self.startUI();
         end
 
         function setupEnvironment(self)
@@ -61,36 +54,58 @@ classdef A2 < handle
                 [self.S, self.S; self.S, self.S], [self.S, self.S; 0, 0], ...
                 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
             PlaceObject('environment.PLY',[0,0,0]);
+            light("Style","local","Position",[-10 -10 3]);
+        end
 
+        function startUI(self, ~)
+            self.b1 = uicontrol('Style','pushbutton','String','Free Control', ...
+                'Position', [100 200 100 40],'Callback', @self.freeControl);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence', ...
+                'Position', [100 150 100 40],'Callback', @self.sequence);
         end
 
         function freeControl(self, source, ~)
             self.stopped = false;
             delete(source);
             delete(self.b2)
-            sliderProperties = struct('Style', 'slider', 'Value', 0, 'SliderStep', [0.01 0.2], 'Callback', @self.updateJoints);
-            self.s1 = uicontrol(sliderProperties ,  'Position', [0 60 200 10], 'String', 'q1', 'Min', -150 ,  'Max', 150, "Value", self.q_titan(1) * 180/pi);
-            self.s2 = uicontrol(sliderProperties ,  'Position', [0 50 200 10], 'String', 'q2', 'Min', -40 ,  'Max', 107.5, "Value", self.q_titan(2) * 180/pi);
-            self.s3 = uicontrol(sliderProperties ,  'Position', [0 40 200 10], 'String', 'q3', 'Min', -200 ,  'Max', 55, "Value", self.q_titan(3) * 180/pi);
-            self.s4 = uicontrol(sliderProperties,   'Position', [0 30 200 10], 'String', 'q4','Min', -350,'Max', 350, "Value", self.q_titan(4) * 180/pi);
-            self.s5 = uicontrol(sliderProperties,   'Position', [0 20 200 10], 'String', 'q5','Min', -118,'Max', 118, "Value", self.q_titan(5) * 180/pi);
-            self.s6 = uicontrol(sliderProperties,   'Position', [0 10 200 10], 'String', 'q6','Min', -350,'Max', 350, "Value", self.q_titan(6) * 180/pi);
+            sliderProperties = struct('Style', 'slider', 'Value', 0, ...
+                'SliderStep', [0.01 0.1], 'Callback', @self.updateJoints);
+            self.s1 = uicontrol(sliderProperties, ...
+                'Position', [10 120 300 20], 'String', 'q1', ...
+                'Min', -150 ,  'Max', 150, "Value", self.q_titan(1) * 180/pi);
+            self.s2 = uicontrol(sliderProperties, ...
+                'Position', [10 100 300 20], 'String', 'q2', ...
+                'Min', -40 ,  'Max', 107.5, "Value", self.q_titan(2) * 180/pi);
+            self.s3 = uicontrol(sliderProperties, ...
+                'Position', [10 80 300 20], 'String', 'q3', ...
+                'Min', -200 ,  'Max', 55, "Value", self.q_titan(3) * 180/pi);
+            self.s4 = uicontrol(sliderProperties, ...
+                'Position', [10 60 300 20], 'String', 'q4', ...
+                'Min', -350,'Max', 350, "Value", self.q_titan(4) * 180/pi);
+            self.s5 = uicontrol(sliderProperties, ...
+                'Position', [10 40 300 20], 'String', 'q5', ...
+                'Min', -118,'Max', 118, "Value", self.q_titan(5) * 180/pi);
+            self.s6 = uicontrol(sliderProperties, ...
+                'Position', [10 20 300 20], 'String', 'q6', ...
+                'Min', -350,'Max', 350, "Value", self.q_titan(6) * 180/pi);
             
-            self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
-
-            writeDigitalPin(self.a, "D22", 0);
+            self.b1 = uicontrol('Style','pushbutton','String','E-Stop', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence', ...
+                'Position', [110 200 100 50],'Callback', @self.sequence);
         end
 
         function sequence(self, source, ~)
             self.stopped = false;
             delete(source);
             delete(self.b1);
-            
-            self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
-            self.DLS();
+           
+            self.b1 = uicontrol('Style','pushbutton','String','E-Stop', ...
+                'Position', [125 150 100 50],'Callback', @self.eStop);
+            self.b2 = uicontrol('Style','pushbutton','String','Free Control', ...
+                'Position', [125 200 100 50],'Callback', @self.freeControl);
 
-            writeDigitalPin(self.a, "D22", 0);
-            
+            self.DLS();
         end
 
         function DLS(self)
@@ -117,7 +132,7 @@ classdef A2 < handle
 
             for i = 1:steps-1
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                    % End-effector transform at current joint state
-                xdot = (x(:,i+1)-T(1:3,4));                  % Velocity to reach next waypoint
+                xdot = (x(:,i+1)-T(1:3,4));                                    % Velocity to reach next waypoint
                 J = self.titan.model.jacob0(qMatrix(i,:));                     % Get Jacobian at current state (use jacob0)
                 J = J(1:3,:);               % Take only first 3 rows
                 m(:,i) = sqrt(det(J*J'));   % Measure of Manipulability
@@ -130,14 +145,14 @@ classdef A2 < handle
                 errorValue(:,i) = xdot - J*qdot; % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';         % Update the joint state
                 self.titan.model.plot(qMatrix(i+1,:));
-                % disp(i)
+                disp(i)
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
-                    return
+                    break
                 end
                 if readDigitalPin(self.a, "D23")
-                    self.realEStop();
-
+                    eStop()
+                    break
                 end
             end
         end
@@ -153,6 +168,7 @@ classdef A2 < handle
         end
 
         function eStop(self, source, ~)
+            disp(so)
             disp("E has been stopped");
             self.stopped = true;
 
@@ -164,26 +180,8 @@ classdef A2 < handle
             delete(self.s5);
             delete(self.s6);
             
-            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
-            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
-        end
-
-        function realEStop(self)
-            disp("E has been stopped");
-            self.stopped = true;
-
-            delete(self.b1);
-            delete(self.s1);
-            delete(self.s2);
-            delete(self.s3);
-            delete(self.s4);
-            delete(self.s5);
-            delete(self.s6);
-            
-            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
-            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
-
-            writeDigitalPin(self.a, "D22", 1);
+            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 100 100 50],'Callback', @self.freeControl);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 150 100 50],'Callback', @self.sequence);
         end
     end
 end

@@ -1,22 +1,9 @@
 % 1.1) Set parameters for the simulation
-titan = KukaTitan();                                                          % Load robot model
+titan = KukaTitan;                                                          % Load robot model
 t = 1;                                                                      % Total time for one direction (s)
 deltaT = 0.02;                                                              % Control frequency
 steps = t/deltaT;                                                           % Number of steps for one direction
 total_steps = 2*steps;                                                      % Total steps for forward and backward
-        S = 5; 
-
-            surf([-S, -S; S, S], ...
-                [-S, S; -S, S], [0, 0; 0, 0], ...
-                'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
-            surf([S, S; S, S], ...
-                [-S, S; -S, S], [S, S; 0, 0], ...
-                'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
-            surf([-S, S; -S, S], ...
-                [S, S; S, S], [S, S; 0, 0], ...
-                'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
-            PlaceObject('environment.PLY',[0,0,0]);
-            axis equal;
 
 
 delta = 2*pi/steps;                                                         % Small angle change
