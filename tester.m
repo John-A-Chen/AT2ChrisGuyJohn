@@ -16,3 +16,4 @@ PlaceObject('UR3eLink6a.PLY',[-0.24355-0.2132,-0.11235-0.0819,0.15185-0.08535]);
 PlaceObject('table.PLY',[0,0,0]);
 
 axis equal;
+teach
