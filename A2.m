@@ -7,6 +7,7 @@ classdef A2 < handle
         titan;
         q_titan;
         stopped = false;
+        a;
 
         s1;
         s2;
@@ -31,8 +32,14 @@ classdef A2 < handle
             xlim([-self.S, self.S]); 
             ylim([-self.S, self.S]); 
             zlim([0, self.S]);
+<<<<<<< Updated upstream
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
             self.q_ur3e = zeros(1,6);
+=======
+            self.a = arduino;
+            % self.ur3e = UR3e(transl(0, 2, 0.05));
+            % self.q_ur3e = zeros(1,6);
+>>>>>>> Stashed changes
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.setupEnvironment();
@@ -70,6 +77,8 @@ classdef A2 < handle
             self.s6 = uicontrol(sliderProperties,   'Position', [0 10 200 10], 'String', 'q6','Min', -350,'Max', 350, "Value", self.q_titan(6) * 180/pi);
             
             self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
+
+            writeDigitalPin(self.a, "D22", 0);
         end
 
         function sequence(self, source, ~)
@@ -79,6 +88,8 @@ classdef A2 < handle
             
             self.b1 = uicontrol('Style','pushbutton','String','E-Stop','Position', [0 70 50 10],'Callback', @self.eStop);
             self.DLS();
+
+            writeDigitalPin(self.a, "D22", 0);
             
         end
 
@@ -119,10 +130,14 @@ classdef A2 < handle
                 errorValue(:,i) = xdot - J*qdot; % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';         % Update the joint state
                 self.titan.model.plot(qMatrix(i+1,:));
-                disp(i)
+                % disp(i)
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
-                    break
+                    return
+                end
+                if readDigitalPin(self.a, "D23")
+                    self.realEStop();
+
                 end
             end
         end
@@ -151,6 +166,24 @@ classdef A2 < handle
             
             self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
             self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
+        end
+
+        function realEStop(self)
+            disp("E has been stopped");
+            self.stopped = true;
+
+            delete(self.b1);
+            delete(self.s1);
+            delete(self.s2);
+            delete(self.s3);
+            delete(self.s4);
+            delete(self.s5);
+            delete(self.s6);
+            
+            self.b1 = uicontrol('Style','pushbutton','String','Free Control','Position', [0 70 100 10],'Callback', @self.freeControl);
+            self.b2 = uicontrol('Style','pushbutton','String','Sequence','Position', [0 60 100 10],'Callback', @self.sequence);
+
+            writeDigitalPin(self.a, "D22", 1);
         end
     end
 end

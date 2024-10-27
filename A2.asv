@@ -7,6 +7,7 @@ classdef A2 < handle
         titan;
         q_titan;
         stopped = false;
+        a;
 
         s1;
         s2;
@@ -31,6 +32,7 @@ classdef A2 < handle
             xlim([-self.S, self.S]); 
             ylim([-self.S, self.S]); 
             zlim([0, self.S]);
+            self.a = arduino;
             % self.ur3e = UR3e(transl(0, 2, 0.05));
             % self.q_ur3e = zeros(1,6);
             self.titan = KukaTitan(transl(0, 0, 0.05));
@@ -57,6 +59,7 @@ classdef A2 < handle
         end
 
         function freeControl(self, source, ~)
+            self.stopped = false;
             delete(source);
             delete(self.b2)
             sliderProperties = struct('Style', 'slider', 'Value', 0, 'SliderStep', [0.01 0.2], 'Callback', @self.updateJoints);
@@ -71,6 +74,7 @@ classdef A2 < handle
         end
 
         function sequence(self, source, ~)
+            self.stopped = false;
             delete(source);
             delete(self.b1);
             
@@ -95,7 +99,7 @@ classdef A2 < handle
             for i = 1:steps
                 x(:,i) = [1.5*cos(deltaTheta*i) + 0.45*cos(deltaTheta*i)
                           1.5*sin(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                          0.5];
+                          3];
             end
 
             qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)));
@@ -116,8 +120,14 @@ classdef A2 < handle
                 errorValue(:,i) = xdot - J*qdot; % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';         % Update the joint state
                 self.titan.model.plot(qMatrix(i+1,:));
+                disp(i)
+                self.q_titan = qMatrix(i+1,:);
                 if self.stopped
-                    return
+                    break
+                end
+                if readDigitalPin(self.a, "D23")
+                    eStop()
+                    break
                 end
             end
         end
@@ -133,6 +143,7 @@ classdef A2 < handle
         end
 
         function eStop(self, source, ~)
+            disp(so)
             disp("E has been stopped");
             self.stopped = true;
 

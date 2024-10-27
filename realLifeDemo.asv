@@ -1,11 +1,5 @@
 function moveToJointState(q)
-    [client, goal] = rosactionclient('/ur/scaled_pos_joint_traj_controller/follow_joint_trajectory');
-    goal.Trajectory.JointNames = jointNames;
-    goal.Trajectory.Header.Seq = 1;
-    goal.Trajectory.Header.Stamp = rostime('Now','system');
-    goal.GoalTimeTolerance = rosduration(0.05);
-    bufferSeconds = 1; % This allows for the time taken to send the message. If the network is fast, this could be reduced.
-    durationSeconds = 5; % This is how many seconds the movement will take
+    
     
     startJointSend = rosmessage('trajectory_msgs/JointTrajectoryPoint');
     startJointSend.Positions = currentJointState_123456;
@@ -24,6 +18,16 @@ end
 
 rosinit('192.168.27.1'); % If unsure, please ask a tutor
 jointStateSubscriber = rossubscriber('/ur/joint_states','sensor_msgs/JointState');
+currentJointState_321456 = (jointStateSubscriber.LatestMessage.Position)'; % Note the default order of the joints is 3,2,1,4,5,6
+currentJointState_123456 = [currentJointState_321456(3:-1:1),currentJointState_321456(4:6)];
+
+[client, goal] = rosactionclient('/ur/scaled_pos_joint_traj_controller/follow_joint_trajectory');
+goal.Trajectory.JointNames = jointNames;
+goal.Trajectory.Header.Seq = 1;
+goal.Trajectory.Header.Stamp = rostime('Now','system');
+goal.GoalTimeTolerance = rosduration(0.05);
+bufferSeconds = 1; % This allows for the time taken to send the message. If the network is fast, this could be reduced.
+durationSeconds = 5; % This is how many seconds the movement will take
 
 ur3e = UR3e;
 
@@ -44,5 +48,6 @@ pause();
 pose3 = transl(-0.3, 0.2, 0.4) * trotx(-90 * pi/180) * troty(30 * pi/180);
 q3 = ur3e.model.ikcon(pose3);
 ur3e.model.animate(q3);
+pause();
 moveToJointState(q3);
 pause();
