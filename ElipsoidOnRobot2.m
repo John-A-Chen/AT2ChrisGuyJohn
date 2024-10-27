@@ -4,9 +4,9 @@ clc;
 
 %%  making cube point cloud for obsticle
 % One side of the cube
-[Y,Z] = meshgrid(-0.75:0.05:0.75,-0.75:0.05:0.75);
+[Y,Z] = meshgrid(-0.5:0.05:0.5,-0.5:0.05:0.5);
 sizeMat = size(Y);
-X = repmat(0.75,sizeMat(1),sizeMat(2));
+X = repmat(0.5,sizeMat(1),sizeMat(2));
 oneSideOfCube_h = surf(X,Y,Z);
 
 % Combine one surface as a point cloud
@@ -22,11 +22,12 @@ cubePoints = [ cubePoints ...
          
 % Plot the cube's point cloud         
 cubeAtOigin_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'r.');
-cubePoints = cubePoints + repmat([2,0,-0.5],size(cubePoints,1),1);
+cubePoints = cubePoints + repmat([0.75,0,-0.25],size(cubePoints,1),1); % moves cube to set position
 cube_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'b.');
+%set(cube_h, 'Visible', 'off'); % Hide the points
 axis equal
 
-%% robotic aerm with ellipsoids
+%% robotic arm with ellipsoids
 robot = UR3;  % Define the robot model
 
 % Define the center points and radii for the ellipsoids for each link
@@ -58,9 +59,83 @@ end
 
 
 % Plot the robot
-robot.model.plot3d(zeros(1,6));
+robot.model.plot3d([0 0 0 0 0 0]);
 axis equal
 camlight
 
 % Activate the teach interface to move the robot
-robot.model.teach;
+%robot.model.teach;
+
+
+q = robot.model.getpos()
+
+centerPoint = [0 0 0];
+
+tr = robot.model.fkine(q).T;
+cubePointsAndOnes = [inv(tr) * [cubePoints,ones(size(cubePoints,1),1)]']';
+updatedCubePoints = cubePointsAndOnes(:,1:3);
+algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoint, radii);
+pointsInside = find(algebraicDist < 1);
+disp(['2.9: There are ', num2str(size(pointsInside,1)),' points inside']);
+
+
+%% dist2pts
+%
+% *Description:*  Function for find the distance between 2 or the same number of 3D points
+
+%% Function Call
+% 
+% *Inputs:* 
+%
+% _pt1_ (many*(2||3||6) double) x,y || x,y,z cartesian point ||Q Joint angle
+%
+% _pt2_ (many*(2||3||6) double) x,y || x,y,z cartesian point ||Q Joint angle
+%
+% *Returns:* 
+%
+% _dist_ (double) distance from pt1 to pt2
+
+function dist=dist2pts(pt1,pt2)
+
+%% Calculate distance (dist) between consecutive points
+% If 2D
+if size(pt1,2) == 2
+    dist=sqrt((pt1(:,1)-pt2(:,1)).^2+...
+              (pt1(:,2)-pt2(:,2)).^2);
+% If 3D          
+elseif size(pt1,2) == 3
+    dist=sqrt((pt1(:,1)-pt2(:,1)).^2+...
+              (pt1(:,2)-pt2(:,2)).^2+...
+              (pt1(:,3)-pt2(:,3)).^2);
+% If 6D like two poses
+elseif size(pt1,2) == 6
+    dist=sqrt((pt1(:,1)-pt2(:,1)).^2+...
+              (pt1(:,2)-pt2(:,2)).^2+...
+              (pt1(:,3)-pt2(:,3)).^2+...
+              (pt1(:,4)-pt2(:,4)).^2+...
+              (pt1(:,5)-pt2(:,5)).^2+...
+              (pt1(:,6)-pt2(:,6)).^2);
+end
+end
+
+%% GetAlgebraicDist
+% determine the algebraic distance given a set of points and the center
+% point and radii of an elipsoid
+% *Inputs:* 
+%
+% _points_ (many*(2||3||6) double) x,y,z cartesian point
+%
+% _centerPoint_ (1 * 3 double) xc,yc,zc of an ellipsoid
+%
+% _radii_ (1 * 3 double) a,b,c of an ellipsoid
+%
+% *Returns:* 
+%
+% _algebraicDist_ (many*1 double) algebraic distance for the ellipsoid
+
+function algebraicDist = GetAlgebraicDist(points, centerPoint, radii)
+
+algebraicDist = ((points(:,1)-centerPoint(1))/radii(1)).^2 ...
+              + ((points(:,2)-centerPoint(2))/radii(2)).^2 ...
+              + ((points(:,3)-centerPoint(3))/radii(3)).^2;
+end
