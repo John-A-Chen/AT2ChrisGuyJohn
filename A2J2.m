@@ -21,6 +21,8 @@ classdef A2J2 < handle
         obsX = 2;
         obsY = 0;
         obsZ = 1.5;
+        cubePoints;
+        algebraicDist;
     end
 
     methods
@@ -298,20 +300,20 @@ classdef A2J2 < handle
             sizeMat = size(Y);
             X = repmat(self.a,sizeMat(1),sizeMat(2));
             oneSideOfCube_h = surf(X,Y,Z);
-            cubePoints = [X(:),Y(:),Z(:)];
-            cubePoints = [ cubePoints ...
-                ; cubePoints * rotz(pi/2)...
-                ; cubePoints * rotz(pi) ...
-                ; cubePoints * rotz(3*pi/2) ...
-                ; cubePoints * roty(pi/2) ...
-                ; cubePoints * roty(-pi/2)];
-            % cubeAtOigin_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'r.');
-            cubePoints = cubePoints + repmat([self.obsX,self.obsY,self.obsZ],size(cubePoints,1),1);
-            cube_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'b.');
+            self.cubePoints = [X(:),Y(:),Z(:)];
+            self.cubePoints = [ self.cubePoints ...
+                ; self.cubePoints * rotz(pi/2)...
+                ; self.cubePoints * rotz(pi) ...
+                ; self.cubePoints * rotz(3*pi/2) ...
+                ; self.cubePoints * roty(pi/2) ...
+                ; self.cubePoints * roty(-pi/2)];
+            % cubeAtOigin_h = plot3(self.cubePoints(:,1),self.cubePoints(:,2),self.cubePoints(:,3),'r.');
+            self.cubePoints = self.cubePoints + repmat([self.obsX,self.obsY,self.obsZ],size(self.cubePoints,1),1);
+            cube_h = plot3(self.cubePoints(:,1),self.cubePoints(:,2),self.cubePoints(:,3),'b.');
             set(cube_h, 'Visible', 'off');
         end
 
-        function algebraicDist = GetAlgebraicDist(points, centerPoint, radii)
+        function algebraicDist = GetAlgebraicDist(self, points, centerPoint, radii)
             algebraicDist = ((points(:,1)-centerPoint(1))/radii(1)).^2 ...
                 + ((points(:,2)-centerPoint(2))/radii(2)).^2 ...
                 + ((points(:,3)-centerPoint(3))/radii(3)).^2;
@@ -344,10 +346,10 @@ classdef A2J2 < handle
             end
             for i = 2: 6
                 warning off;
-                cubePointsAndOnes = (inv(tr(:,:,i)) * [cubePoints,ones(size(cubePoints,1),1)]')';
+                cubePointsAndOnes = (inv(tr(:,:,i)) * [self.cubePoints,ones(size(self.cubePoints,1),1)]')';
                 updatedCubePoints = cubePointsAndOnes(:,1:3);
-                algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
-                pointsInside = find(algebraicDist < 1);
+                self.algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
+                pointsInside = find(self.algebraicDist < 1);
                 disp(['There are ', num2str(size(pointsInside,1)),' points inside joint ',num2str(i),' ellipsoid']);
                 warning on;
             end
@@ -380,10 +382,10 @@ classdef A2J2 < handle
             end
             for i = 2: 6
                 warning off;
-                cubePointsAndOnes = (inv(tr(:,:,i)) * [cubePoints,ones(size(cubePoints,1),1)]')';
+                cubePointsAndOnes = (inv(tr(:,:,i)) * [self.cubePoints,ones(size(self.cubePoints,1),1)]')';
                 updatedCubePoints = cubePointsAndOnes(:,1:3);
-                algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
-                pointsInside = find(algebraicDist < 1);
+                self.algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
+                pointsInside = find(self.algebraicDist < 1);
                 disp(['There are ', num2str(size(pointsInside,1)),' points inside joint ',num2str(i),' ellipsoid']);
                 warning on;
             end
