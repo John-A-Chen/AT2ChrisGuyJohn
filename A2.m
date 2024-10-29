@@ -151,7 +151,6 @@ classdef A2 < handle
             for i = 1:steps-1
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
                 xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
-                
                 J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
                 J = J(1:3,:);                                               % Take only first 3 rows
                 m(:,i) = sqrt(det(J*J'));                                   % Measure of Manipulability

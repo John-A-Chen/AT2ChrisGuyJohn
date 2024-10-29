@@ -4,19 +4,19 @@ t = 1;                                                                      % To
 deltaT = 0.02;                                                              % Control frequency
 steps = t/deltaT;                                                           % Number of steps for one direction
 total_steps = 2*steps;                                                      % Total steps for forward and backward
-        S = 5; 
+S = 5;
 
-            surf([-S, -S; S, S], ...
-                [-S, S; -S, S], [0, 0; 0, 0], ...
-                'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
-            surf([S, S; S, S], ...
-                [-S, S; -S, S], [S, S; 0, 0], ...
-                'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
-            surf([-S, S; -S, S], ...
-                [S, S; S, S], [S, S; 0, 0], ...
-                'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
-            PlaceObject('environment.PLY',[0,0,0]);
-            axis equal;
+surf([-S, -S; S, S], ...
+    [-S, S; -S, S], [0, 0; 0, 0], ...
+    'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
+surf([S, S; S, S], ...
+    [-S, S; -S, S], [S, S; 0, 0], ...
+    'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
+surf([-S, S; -S, S], ...
+    [S, S; S, S], [S, S; 0, 0], ...
+    'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
+PlaceObject('environment.PLY',[0,0,0]);
+axis equal;
 
 
 delta = 2*pi/steps;                                                         % Small angle change
@@ -38,7 +38,7 @@ for i=1:steps
     x(1,i) = 2;                                                             % Points in x (fixed)
     x(2,i) = (1-s(i))*-1.55 + s(i)*1.55;                                    % Points in y (move forward)
     x(3,i) = 1.5;                                                           % Points in z (fixed)
-    
+
     theta(1,i) = 0;                                                         % Roll angle
     theta(2,i) = 5*pi/9;                                                    % Pitch angle
     theta(3,i) = 0;                                                         % Yaw angle
@@ -49,7 +49,7 @@ for i=1:steps
     x(1,steps+i) = 2;                                                       % Points in x (fixed)
     x(2,steps+i) = (1-s(i))*1.55 + s(i)*-1.55;                              % Points in y (move backward)
     x(3,steps+i) = 1.5;                                                     % Points in z (fixed)
-    
+
     theta(1,steps+i) = 0;                                                   % Roll angle
     theta(2,steps+i) = 5*pi/9;                                              % Pitch angle
     theta(3,steps+i) = 0;                                                   % Yaw angle
@@ -89,7 +89,7 @@ for i = 1:total_steps-1
             qdot(i,j) = 0;                                                  % Stop motor if above joint limit
         end
     end
-    
+
     qMatrix(i+1,:) = qMatrix(i,:) + deltaT*qdot(i,:);                       % Update joint states
     positionError(:,i) = x(:,i+1) - T(1:3,4);                               % Position error tracking
     angleError(:,i) = deltaTheta;                                           % Angle error tracking
