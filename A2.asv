@@ -61,7 +61,9 @@ classdef A2 < handle
         function freeControl(self, source, ~)
             self.stopped = false;
             delete(source);
-            delete(self.b(2));
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12)]);
             sliderProperties = struct('Style', 'slider', 'Value', 0, ...
                 'SliderStep', [0.01 0.1], 'Callback', @self.updateJoints);
             self.s(1) = uicontrol(sliderProperties, ...
@@ -111,8 +113,9 @@ classdef A2 < handle
         function sequence(self, source, ~)
             self.stopped = false;
             delete(source);
-            delete([self.b(1), self.s(1), self.s(2), ...
-                self.s(3), self.s(4), self.s(5), self.s(6)]);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12)]);
 
             self.b(3) = uicontrol('Style','pushbutton','String','E-Stop', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
@@ -177,26 +180,35 @@ classdef A2 < handle
             sliderValue2 = get(source, 'Value');
             number = source.String;
             number = str2num(['uint8(',number(2),')']);
-            q1 = self.q_titan;
-            q2 = self.q_ur3e;
-            q1(number) = sliderValue1 * pi/180;
-            q2(number) = sliderValue2 * pi/180;
-            self.q_titan = q1;
-            self.q_ur3e = q2;
-            self.titan.model.animate(q1);
-            self.ur3e.model.animate(q2);
+            if number == 1
+                q1 = self.q_titan;
+                q1(number) = sliderValue1 * pi/180;
+                self.q_titan = q1;
+                self.titan.model.animate(q1);
+            elseif number == 2
+                q2 = self.q_ur3e;
+                q2(number) = sliderValue2 * pi/180;
+                self.q_ur3e = q2;
+                self.ur3e.model.animate(q2);
+            end
+            % q1 = self.q_titan;
+            % q2 = self.q_ur3e;
+            % q1(number) = sliderValue1 * pi/180;
+            % q2(number) = sliderValue2 * pi/180;
+            % self.q_titan = q1;
+            % self.q_ur3e = q2;
+            % self.titan.model.animate(q1);
+            % self.ur3e.model.animate(q2);
         end
 
         function eStop(self, source, ~)
             % disp(so)
             disp("E has been stopped");
             self.stopped = true;
-
             delete(source);
             delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
                 self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
                 self.s(9); self.s(10); self.s(11); self.s(12)]);
-
 
             self.b(1) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [100 150 100 50],'Callback', @self.freeControl);
