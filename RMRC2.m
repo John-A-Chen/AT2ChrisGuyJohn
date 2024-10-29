@@ -34,9 +34,9 @@ angleError = zeros(3,total_steps);                                          % Fo
 % 1.3) Set up forward trajectory, initial pose
 s = lspb(0,1,steps);                                                        % Trapezoidal trajectory scalar
 for i=1:steps
-    x(1,i) = 0.75;                                                             % Points in x (fixed)
-    x(2,i) = (1-s(i))*-1 + s(i)*1;                                    % Points in y (move forward)
-    x(3,i) = 0.75;                                                           % Points in z (fixed)
+    x(1,i) = 0.75;                                                          % Points in x (fixed)
+    x(2,i) = (1-s(i))*-1 + s(i)*1;                                          % Points in y (move forward)
+    x(3,i) = 0.75;                                                          % Points in z (fixed)
 
     theta(1,i) = 0;                                                         % Roll angle
     theta(2,i) = 5*pi/9;                                                    % Pitch angle
@@ -45,9 +45,9 @@ end
 
 % 1.3) Set up backward trajectory
 for i=1:steps
-    x(1,steps+i) = 0.75;                                                       % Points in x (fixed)
-    x(2,steps+i) = (1-s(i))*1 + s(i)*-1;                              % Points in y (move backward)
-    x(3,steps+i) = 0.75;                                                     % Points in z (fixed)
+    x(1,steps+i) = 0.75;                                                    % Points in x (fixed)
+    x(2,steps+i) = (1-s(i))*1 + s(i)*-1;                                    % Points in y (move backward)
+    x(3,steps+i) = 0.75;                                                    % Points in z (fixed)
 
     theta(1,steps+i) = 0;                                                   % Roll angle
     theta(2,steps+i) = 5*pi/9;                                              % Pitch angle
@@ -98,12 +98,12 @@ end
 tic
 hold on
 % figure(1)
-% plot3(x(1,:),x(2,:),x(3,:),'k.','LineWidth',1)
-% titan.model.plot(qMatrix,'trail','r-')
+plot3(x(1,:),x(2,:),x(3,:),'k.','LineWidth',1)
+% ur3e.model.plot(qMatrix,'trail','r-')
 
 for i = 1:total_steps
     ur3e.model.animate(qMatrix(i,:));
-    plot3(x(1,i), x(2,i), x(3,i), 'k.');
+    % plot3(x(1,i), x(2,i), x(3,i), 'k.');
     drawnow
 end
 
