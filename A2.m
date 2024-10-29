@@ -76,7 +76,6 @@ classdef A2 < handle
             self.s(1) = uicontrol(sliderProperties, ...
                 'Position', [10 120 300 20], 'String', 'tq1', ...
                 'Min', -150 ,  'Max', 150, "Value", self.q_titan(1) * 180/pi);
-            self.f(1) = uilabel("Titan q1", 'Position', [310 120 300 20]);
             self.s(2) = uicontrol(sliderProperties, ...
                 'Position', [10 100 300 20], 'String', 'tq2', ...
                 'Min', -40 ,  'Max', 107.5, "Value", self.q_titan(2) * 180/pi);
@@ -112,7 +111,7 @@ classdef A2 < handle
                 'Position', [1200 20 300 20], 'String', 'uq6', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
 
-            self.b(3) = uicontrol('Style','pushbutton','String','E-Stop', ...
+            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
             self.b(4) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [110 200 100 50],'Callback', @self.sequence);
@@ -152,23 +151,23 @@ classdef A2 < handle
 
             self.s(1) = uicontrol(sliderProperties, ...
                 'Position', [10 120 300 20], 'String', 'x1', ...
-                'Min', -150 ,  'Max', 150, "Value", self.x1(1) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x1(1));
             self.s(2) = uicontrol(sliderProperties, ...
                 'Position', [10 100 300 20], 'String', 'y1', ...
-                'Min', -40 ,  'Max', 107.5, "Value", self.x1(2) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x1(2));
             self.s(3) = uicontrol(sliderProperties, ...
                 'Position', [10 80 300 20], 'String', 'z1', ...
-                'Min', -200 ,  'Max', 55, "Value", self.x1(3) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x1(3));
 
             self.s(7) = uicontrol(sliderProperties, ...
                 'Position', [1200 120 300 20], 'String', 'x2', ...
-                'Min', -150 ,  'Max', 150, "Value", self.x2(1) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x2(1));
             self.s(8) = uicontrol(sliderProperties, ...
                 'Position', [1200 100 300 20], 'String', 'y2', ...
-                'Min', -40 ,  'Max', 107.5, "Value", self.x2(2) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x2(2));
             self.s(9) = uicontrol(sliderProperties, ...
                 'Position', [1200 80 300 20], 'String', 'z2', ...
-                'Min', -200 ,  'Max', 55, "Value", self.x2(3) * 180/pi);
+                'Min', -3 ,  'Max', 3, "Value", self.x2(3));
         end
 
         function DLS(self)
@@ -207,23 +206,28 @@ classdef A2 < handle
                 qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
                 errorValue(:,i) = xdot - J*qdot;                            % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
-                self.titan.model.plot(qMatrix(i+1,:));
+                self.titan.model.animate(qMatrix(i+1,:));
+                drawnow
                 disp(i)
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
                     break
                 end
                 % if readDigitalPin(self.a, "D23")
-                %     eStop()
-                %     break
+                %     break;
                 % end
             end
+            delete(self.b(3));
+            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            self.b(1) = uicontrol('Style','pushbutton','String','Restart', ...
+                'Position', [110 100 100 50],'Callback', @self.sequence);
         end
 
         function updateJoints(self, source, ~)                              % issue here is that source changes the number
             sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
             sliderValue2 = get(source, 'Value');
-            disp(source);
+            % disp(source);
             name = source.String;
             number = str2num(['uint8(',name(3),')']);
             if strcmp(name(1),'t')
@@ -249,12 +253,32 @@ classdef A2 < handle
 
         function updatePath(self, source, ~)
             sliderValue1 = get(source, 'Value');
-            disp(source)
-            disp(self.q_titan);
+            name = source.String;
+            number = str2num(['uint8(',name(2),')']);
+            if number == 1
+                switch name(1)
+                    case 'x'
+                        self.x1(1) = sliderValue1;
+                    case 'y'
+                        self.x1(2) = sliderValue1;
+                    case 'z'
+                        self.x1(3) = sliderValue1;
+                end
+            elseif number == 2
+                switch name(1)
+                    case 'x'
+                        self.x2(1) = sliderValue1;
+                    case 'y'
+                        self.x2(2) = sliderValue1;
+                    case 'z'
+                        self.x2(3) = sliderValue1;
+                end
+            end
+            disp(self.x1);
+            disp(self.x2);
         end
 
         function eStop(self, source, ~)
-            % disp(so)
             disp("E has been stopped");
             self.stopped = true;
             delete(source);
