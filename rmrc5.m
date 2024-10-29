@@ -1,3 +1,4 @@
+function rmrc5()
 % Set parameters for the simulation
 ur3e = UR3e(transl(2,0,0));                                                 % Load robot model 1
 titan = KukaTitan();                                                        % Load robot model 2
@@ -15,13 +16,13 @@ W = diag([1 1 1 0.1 0.1 0.1]);                                              % We
 qMatrix = zeros(total_steps,7);                                             % Array for UR3e joint angles
 qMatrix2 = zeros(total_steps,6);                                            % Array for Kuka Titan joint angles
 qdot = zeros(total_steps,7);                                                % Array for UR3e joint velocities
-qdot2 = zeros(total_steps,6);                                                
+qdot2 = zeros(total_steps,6);
 theta = zeros(3,total_steps);                                               % Array for UR3e roll-pitch-yaw angles
 theta2 = zeros(3,total_steps);                                              % Array for Kuka Titan roll-pitch-yaw angles
 x = zeros(3,total_steps);                                                   % Array for UR3e x-y-z trajectory
 x2 = zeros(3,total_steps);                                                  % Array for Kuka Titan x-y-z trajectory
 
-%% UR3e movement with RMRC
+% UR3e movement with RMRC
 s1 = lspb(0,1,steps);                                                       % Trapezoidal trajectory scalar
 for i=1:steps
     x(1,i) = 1;                                                             % Points in x (fixed)
@@ -69,7 +70,7 @@ for i = 1:total_steps-1
     qMatrix(i+1,:) = qMatrix(i,:) + deltaT*qdot(i,:);                       % Update joint states
 end
 
-%% Kuka movement with RMRC
+% Kuka movement with RMRC
 s2 = lspb(0,1,steps);                                                        % Trapezoidal trajectory scalar
 for i=1:steps
     x2(1,i) = 2;                                                            % Points in x (fixed)
@@ -117,10 +118,11 @@ for i = 1:total_steps-1
     qMatrix2(i+1,:) = qMatrix2(i,:) + deltaT*qdot2(i,:);                    % Update joint states
 end
 
-%% Plot the UR3e movement
+% Plot the UR3e movement
 hold on;
 for i = 1:total_steps
     ur3e.model.animate(qMatrix(i,:));                                       % Animate UR3e robot
     titan.model.animate(qMatrix2(i,:));                                     % Animate Kuka Titan robot
     drawnow();
+end
 end
