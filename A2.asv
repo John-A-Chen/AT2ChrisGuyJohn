@@ -65,6 +65,8 @@ classdef A2 < handle
                 'Position', [100 150 100 40],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
+            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+                'Position', [100 50 100 40],'Callback', @self.controller);
         end
 
         function freeControl(self, source, ~)
@@ -183,8 +185,58 @@ classdef A2 < handle
             end
         end
 
-        
+        function controller(self, source, ~)
+            self.stopped = false;
+            delete(source);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
 
+            self.b(3) = uicontrol('Style','pushbutton','String','eStop', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            
+            id = 1; % Note: may need to be changed if multiple joysticks present
+            joy = vrjoystick(id);
+            caps(joy) % display joystick information
+
+            uq = self.q_ur3e;
+            tq = self.q_titan;
+
+            tic;
+            while (toc < duration)
+                [axes, buttons, povs] = read(joy);
+
+                ux = Kv*axes(1);
+                uy = -Kv*axes(2);
+                uz = Kv*(buttons(8)-buttons(7));
+
+                tx = Kv*axes(3);
+                ty = -Kv*axes(4);
+                tz = Kv*(buttons(5)-buttons(2));
+
+                dux = [ux;uy;uz;0;0;0];
+                dtx = [tx;ty;tz;0;0;0];
+
+                lambda = 0.1;
+                uJ = self.ur3e.model.jacob0(self.q_ur3e);
+                uJinv_dls = inv((uJ'*uJ)+lambda^2*eye(6))*uJ';
+                duq = uJinv_dls*dux;
+                uq = uq + dq'*dt;
+                self.ur3e.model.animate
+
+                tJ = self.titan.model.jacob0(self.q_titan);
+                tJinv_dls = inv((tJ'*tJ)+lambda^2*eye(6))*tJ';
+                dtq = tJinv_dls*dtx;
+
+                self.titan.model.animate()
+
+                drawnow
+
+                if self.stopped
+                    break
+                end
+            end
+        end
 
         function play(self, source, ~)
             self.stopped = false;
@@ -216,11 +268,40 @@ classdef A2 < handle
                 % drawnow;
             end
 
-            qMatrix(1,:) = self.titan.model.ikcon()
+            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)'));
+            self.titan.model.animate(qMatrix(1,:));
+            drawnow
 
-            delete(self.b(3));
-            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
-                'Position', [110 150 100 50],'Callback', @self.eStop);
+            for i = 1:steps-1
+                T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
+                xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
+                J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
+                J = J(1:3,:);                                               % Take only first 3 rows
+                m(:,i) = sqrt(det(J*J'));                                   % Measure of Manipulability
+                if m(:,i) > epsilon
+                    lambda = 0;
+                else
+                    lambda = (1 - (m(:,i)/epsilon)^2) * lambdaMax;
+                end
+                qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
+                errorValue(:,i) = xdot - J*qdot;                            % Velocity error
+                qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
+                self.titan.model.animate(qMatrix(i+1,:));
+                drawnow
+                self.q_titan = qMatrix(i+1,:);
+                if self.stopped
+                    break
+                end
+                % if readDigitalPin(self.a, "D23")
+                %     break
+                % end
+            end
+
+            if ~self.stopped
+                delete(self.b(3));
+                self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
+                    'Position', [110 150 100 50],'Callback', @self.eStop);
+            end
         end
 
         function DLS2(self)
@@ -407,6 +488,8 @@ classdef A2 < handle
                 'Position', [100 200 100 50],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
+            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+                'Position', [100 50 100 40],'Callback', @self.controller);
         end
         
         function defineObstacle(self, obsX, obsY, obsZ, a)

@@ -30,9 +30,9 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
-            self.q_ur3e = zeros(1,6);
+            self.q_ur3e = zeros(1,7);
             self.titan = KukaTitan(transl(0, 0, 0.05));
-            self.q_titan = zeros(1,7);
+            self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
             self.x2 = zeros(3,1);
             self.setupEnvironment();
@@ -65,6 +65,8 @@ classdef A2 < handle
                 'Position', [100 150 100 40],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
+            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+                'Position', [100 50 100 40],'Callback', @self.controller);
         end
 
         function freeControl(self, source, ~)
@@ -183,8 +185,64 @@ classdef A2 < handle
             end
         end
 
-        
+        function controller(self, source, ~)
+            self.stopped = false;
+            delete(source);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
 
+            self.b(3) = uicontrol('Style','pushbutton','String','eStop', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            
+            id = 1; % Note: may need to be changed if multiple joysticks present
+            joy = vrjoystick(id);
+            caps(joy) % display joystick information
+
+            uq = zeros(1,6);
+            tq = zeros(1,6);
+            dt = 0.1;
+
+            % tic;
+            while true
+                [axes, buttons, povs] = read(joy);
+                Kuv = 0.3;
+                Ktv = 1;
+
+                ux = Kuv*axes(1);
+                uy = -Kuv*axes(2);
+                uz = Kuv*(buttons(8)-buttons(7));
+
+                tx = Ktv*axes(3);
+                ty = -Ktv*axes(4);
+                tz = Ktv*(buttons(5)-buttons(2));
+
+                dux = [ux;uy;uz;0;0;0];
+                dtx = [tx;ty;tz;0;0;0];
+
+                lambda = 0.1;
+                uJ = self.ur3e.model.jacob0(uq);
+                uJinv_dls = inv((uJ'*uJ)+lambda^2*eye(6))*uJ';
+                duq = uJinv_dls*dux;
+                uq = uq + duq'*dt;
+                self.ur3e.model.animate(uq);
+                self.q_ur3e = uq;
+
+                disp(tq);
+                tJ = self.titan.model.jacob0(tq);
+                tJinv_dls = inv((tJ'*tJ)+lambda^2*eye(6))*tJ';
+                dtq = tJinv_dls*dtx;
+                tq = tq + dtq'*dt;
+                self.titan.model.animate(tq);
+                self.q_titan = tq;
+
+                drawnow
+
+                if self.stopped
+                    break
+                end
+            end
+        end
 
         function play(self, source, ~)
             self.stopped = false;
@@ -436,6 +494,8 @@ classdef A2 < handle
                 'Position', [100 200 100 50],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
+            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+                'Position', [100 50 100 40],'Callback', @self.controller);
         end
         
         function defineObstacle(self, obsX, obsY, obsZ, a)
