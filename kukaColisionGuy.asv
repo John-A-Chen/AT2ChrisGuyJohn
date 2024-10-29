@@ -2,8 +2,6 @@ close all
 clear all
 clc
 
-stopped = false;
-
 % 1.1) Set parameters for the simulation
 % Define the center points and radii for the ellipsoids for each link
 centerPoints = [
@@ -186,13 +184,16 @@ for i = 1:total_steps
         pointsInside = find(algebraicDist < 1);
         if ~isempty(pointsInside)
             disp(['Collision detected: ', num2str(size(pointsInside,1)), ' points inside link ', num2str(k), ' ellipsoid']);
-            stopped = true;
+
         end
+
+        if self.stopped
+            break
+        end
+
     end
     % ----------------------------
-    if stopped
-        break
-    end
+
 
 end
 
