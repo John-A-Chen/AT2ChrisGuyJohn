@@ -14,6 +14,15 @@ classdef A2 < handle
         b = gobjects(1,4);
         path = gobjects(1,100);
 
+        steps;
+        total_steps;
+        epsilon;
+        deltaT;
+        iCurrent;
+
+        c;
+        r;
+
     end
 
     methods
@@ -30,11 +39,19 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
-            self.q_ur3e = zeros(1,6);
+            self.q_ur3e = zeros(1,7);
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
             self.x2 = zeros(3,1);
+            self.steps = 1/0.2;
+            self.total_steps = 2 * self.steps;
+            self.epsilon = 0.1;
+            self.deltaT = 0.02;
+            self.iCurrent = 1;
+
+            self.c = [2.5; 1.5; 1];
+            self.r = [0.6; 0.6; 0.6];
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
@@ -54,6 +71,7 @@ classdef A2 < handle
                 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
             PlaceObject('environment.PLY',[0,0,0]);
             light("Style","local","Position",[-10 -10 3]);
+            % ellipsoid(self.c(1),self.c(2),self.c(3),self.r(1),self.r(2),self.r(3));
         end
 
         function startUI(self, ~)
@@ -115,8 +133,8 @@ classdef A2 < handle
                 'Position', [1200 20 300 20], 'String', 'uq6', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
             self.s(13) = uicontrol(sliderProperties, ...
-                'Position', [1200 10 300 20], 'String', 'uq7', ...
-                'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
+                'Position', [1700 10 300 20], 'String', 'uq7', ...
+                'Min', -360,'Max', 360, "Value", self.q_ur3e(7) * 180/pi);
 
             self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
@@ -138,7 +156,9 @@ classdef A2 < handle
                 'Position', [110 200 100 50],'Callback', @self.freeControl);
 
             % self.DLS();
-            self.DLS2();
+            % self.DLS2();
+            % self.rmrc5();
+            self.welding();
         end
 
         function pathPlacement(self, source, ~)
@@ -181,7 +201,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * d^-0.5;
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
         end
 
@@ -273,12 +298,13 @@ classdef A2 < handle
                 % self.titan.model.animate(q);
                 % drawnow;
             end
-
-            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)'));
-            self.titan.model.animate(qMatrix(1,:));
+            i = self.iCurrent;
+            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'), [0,0,0.5,0,0,0]);
+            self.titan.model.animate(qMatrix(i,:));
             drawnow
-
-            for i = 1:steps-1
+            
+            % for i = 1:steps-1
+            while i <= 99
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
                 xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
                 J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
@@ -296,125 +322,148 @@ classdef A2 < handle
                 drawnow
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
+                    self.iCurrent = i;
                     break
+                    
                 end
+                i = i + 1;
                 % if readDigitalPin(self.a, "D23")
                 %     break
                 % end
             end
 
+            
+
             if ~self.stopped
+                self.iCurrent = 1;
                 delete(self.b(3));
                 self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                     'Position', [110 150 100 50],'Callback', @self.eStop);
             end
         end
 
-        function DLS2(self)
-            t = 10;                                                         % Total time in seconds
-            steps = 200;                                                    % No. of steps
-            deltaT = t/steps;                                               % Discrete time step
-            deltaTheta = 4*pi/steps;                                        % Small angle change
-            qMatrix1 = zeros(steps,6);                                      % Assign memory for joint angles
-            x = zeros(3,steps);                                             % Assign memory for trajectory
-            m = zeros(1,steps);                                             % For recording measure of manipulability
-            errorValue = zeros(3,steps);                                    % For recording velocity error
-            lambda = 0;
-            lambdaMax = 0.05;
-            epsilon = 0.5;
-
-            for i = 1:steps
-                x(:,i) = [3 + 0.2*cos(deltaTheta*i) + 0.1*cos(deltaTheta*i)
-                    2 + 0.2*sin(deltaTheta*i) + 0.1*cos(deltaTheta*i)
-                    1.3];
-                % self.elipsoidOnRobotUR3e();
-            end
-
-            qMatrix(1,:) = self.ur3e.model.ikcon(transl(x(:,1)));
-            self.ur3e.model.animate(qMatrix1(1,:));
-
-            
-            for i = 1:steps-1
-                T = self.ur3e.model.fkine(qMatrix1(i,:)).T;                 % End-effector transform at current joint state
-                xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
-                J = self.ur3e.model.jacob0(qMatrix1(i,:));                  % Get Jacobian at current state (use jacob0)
-                J = J(1:3,:);                                               % Take only first 3 rows
-                m(:,i) = sqrt(det(J*J'));                                   % Measure of Manipulability
-                if m(:,i) > epsilon
-                    lambda = 0;
-                else
-                    lambda = (1 - (m(:,i)/epsilon)^2) * lambdaMax;
-                end
-                qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
-                errorValue(:,i) = xdot - J*qdot;                            % Velocity error
-                qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
-                self.ur3e.model.animate(qMatrix(i+1,:));
-                % disp(i)
-                drawnow
-                self.q_ur3e = qMatrix(i+1,:);
-                if self.stopped
-                    break
-                end
-                % if readDigitalPin(self.a, "D23")
-                %     break
-                % end
-            end
+        function welding(self)
 
         end
 
-        function DLS(self)
-            t = 10;                                                         % Total time in seconds
-            steps = 200;                                                    % No. of steps
-            deltaT = t/steps;                                               % Discrete time step
-            deltaTheta = 4*pi/steps;                                        % Small angle change
-            qMatrix = zeros(steps,6);                                       % Assign memory for joint angles
-            x = zeros(3,steps);                                             % Assign memory for trajectory
-            m = zeros(1,steps);                                             % For recording measure of manipulability
-            errorValue = zeros(3,steps);                                    % For recording velocity error
-            lambda = 0;
-            lambdaMax = 0.05;
-            epsilon = 0.5;
+        function rmrc5(self)
+            self.elipsoidOnRobotTitan();
+            self.elipsoidOnRobotUR3e();
+            % Allocate array data
+            qMatrix = zeros(self.total_steps,7);                                             % Array for UR3e joint angles
+            qMatrix2 = zeros(self.total_steps,6);                                            % Array for Kuka Titan joint angles
+            qdot = zeros(self.total_steps,7);                                                % Array for UR3e joint velocities
+            qdot2 = zeros(self.total_steps,6);
+            theta = zeros(3,self.total_steps);                                               % Array for UR3e roll-pitch-yaw angles
+            theta2 = zeros(3,self.total_steps);                                              % Array for Kuka Titan roll-pitch-yaw angles
+            x = zeros(3,self.total_steps);                                                   % Array for UR3e x-y-z trajectory
+            x_2 = zeros(3,self.total_steps);                                                  % Array for Kuka Titan x-y-z trajectory
 
-            for i = 1:steps
-                x(:,i) = [1.5*cos(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                    1.5*sin(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                    3];
+            % UR3e movement with RMRC
+            s1 = lspb(0,1,self.steps);                                                       % Trapezoidal trajectory scalar
+            for i=1:self.steps
+                x(1,i) = 2;                                                             % Points in x (fixed)
+                x(2,i) = (1-s1(i))*1.25 + s1(i)*3.25;                                        % Points in y (move forward)
+                x(3,i) = 1.5;                                                             % Points in z (fixed)
+                theta(1,i) = 0;                                                         % Roll angle
+                theta(2,i) = 5*pi/9;                                                    % Pitch angle
+                theta(3,i) = 0;                                                         % Yaw angle
+            end
+            for i=1:self.steps
+                x(1,self.steps+i) = 2;                                                       % Points in x (fixed)
+                x(2,self.steps+i) = (1-s1(i))*3.25 + s1(i)*1.25;                                  % Points in y (move backward)
+                x(3,self.steps+i) = 1.5;                                                       % Points in z (fixed)
+                theta(1,self.steps+i) = 0;                                                   % Roll angle
+                theta(2,self.steps+i) = 5*pi/9;                                              % Pitch angle
+                theta(3,self.steps+i) = 0;                                                   % Yaw angle
             end
 
-            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)));
-            self.titan.model.animate(qMatrix(1,:));
+            T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1];         % Transformation of first point
+            q0 = zeros(1,7);                                                            % Initial guess for joint angles
+            qMatrix(1,:) = self.ur3e.model.ikcon(T,q0);                                      % Solve joint angles to achieve first waypoint
 
-            for i = 1:steps-1
-                T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
-                xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
-                J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
-                J = J(1:3,:);                                               % Take only first 3 rows
-                m(:,i) = sqrt(det(J*J'));                                   % Measure of Manipulability
-                if m(:,i) > epsilon
-                    lambda = 0;
+            % RMRC loop for UR3e
+            for i = 1:self.total_steps-1
+                T = self.ur3e.model.fkine(qMatrix(i,:)).T;                                   % Get forward transformation at current joint state
+                deltaX = x(:,i+1) - T(1:3,4);                                           % Position error from next waypoint
+                Rd = rpy2r(theta(1,i+1),theta(2,i+1),theta(3,i+1));                     % Desired rotation matrix
+                Ra = T(1:3,1:3);                                                        % Current end-effector rotation matrix
+                Rdot = (1/self.deltaT)*(Rd - Ra);                                            % Rotation matrix error
+                self.S = Rdot*Ra';                                                           % Skew symmetric matrix
+                linear_velocity = (1/self.deltaT)*deltaX;
+                angular_velocity = [self.S(3,2); self.S(1,3); self.S(2,1)];                            % Angular velocity
+                xdot = self.W*[linear_velocity; angular_velocity];                           % End-effector velocity
+                J = self.ur3e.model.jacob0(qMatrix(i,:));                                    % Jacobian at current state
+
+                % Damped Least Squares (DLS) for low manipulability
+                m = sqrt(det(J*J'));
+                if m < self.epsilon
+                    lambda = (1 - m/self.epsilon)*5E-2;
                 else
-                    lambda = (1 - (m(:,i)/epsilon)^2) * lambdaMax;
+                    lambda = 0;
                 end
-                qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
-                errorValue(:,i) = xdot - J*qdot;                            % Velocity error
-                qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
-                self.titan.model.animate(qMatrix(i+1,:));
-                drawnow
-                disp(i)
-                self.q_titan = qMatrix(i+1,:);
-                if self.stopped
-                    break
-                end
-                % if readDigitalPin(self.a, "D23")
-                %     break;
-                % end
+                invJ = inv(J'*J + lambda *eye(7))*J';                                   % DLS inverse Jacobian
+                qdot(i,:) = (invJ*xdot)';                                               % Joint velocities
+                qMatrix(i+1,:) = qMatrix(i,:) + self.deltaT*qdot(i,:);                       % Update joint states
             end
-            delete(self.b(3));
-            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
-                'Position', [110 150 100 50],'Callback', @self.eStop);
-            self.b(1) = uicontrol('Style','pushbutton','String','Restart', ...
-                'Position', [110 100 100 50],'Callback', @self.sequence);
+
+            % Kuka movement with RMRC
+            s2 = lspb(0,1,self.steps);                                                        % Trapezoidal trajectory scalar
+            for i=1:self.steps
+                x_2(1,i) = 2;                                                            % Points in x (fixed)
+                x_2(2,i) = (1-s2(i))*1.25 + s2(i)*3.25;                                 % Points in y (move forward)
+                x_2(3,i) = 1.5;                                                          % Points in z (fixed)
+                theta2(1,i) = 0;                                                        % Roll angle
+                theta2(2,i) = 5*pi/9;                                                   % Pitch angle
+                theta2(3,i) = 0;                                                        % Yaw angle
+            end
+            for i=1:self.steps
+                x_2(1,self.steps+i) = 2;                                                      % Points in x (fixed)
+                x_2(2,self.steps+i) = (1-s2(i))*3.25 + s2(i)*1.25;                           % Points in y (move backward)
+                x_2(3,self.steps+i) = 1.5;                                                    % Points in z (fixed)
+                theta2(1,self.steps+i) = 0;                                                  % Roll angle
+                theta2(2,self.steps+i) = 5*pi/9;                                             % Pitch angle
+                theta2(3,self.steps+i) = 0;                                                  % Yaw angle
+            end
+
+            T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1)) x2(:,1); zeros(1,3) 1];    % Transformation of first point
+            q1 = zeros(1,6);                                                            % Initial guess for joint angles
+            qMatrix2(1,:) = self.titan.model.ikcon(T2,q1);                                   % Solve joint angles to achieve first waypoint
+
+            % RMRC loop for Kuka Titan
+            for i = 1:self.total_steps-1
+                T2 = self.titan.model.fkine(qMatrix2(i,:)).T;                                % Get forward transformation at current joint state
+                deltaX2 = x2(:,i+1) - T2(1:3,4);                                        % Position error from next waypoint
+                Rd2 = rpy2r(theta2(1,i+1),theta2(2,i+1),theta2(3,i+1));                 % Desired rotation matrix
+                Ra2 = T2(1:3,1:3);                                                      % Current end-effector rotation matrix
+                Rdot2 = (1/self.deltaT)*(Rd2 - Ra2);                                         % Rotation matrix error
+                S2 = Rdot2*Ra2';                                                        % Skew symmetric matrix
+                linear_velocity2 = (1/self.deltaT)*deltaX2;
+                angular_velocity2 = [S2(3,2); S2(1,3); S2(2,1)];                        % Angular velocity
+                xdot2 = self.W*[linear_velocity2; angular_velocity2];                        % End-effector velocity
+                J2 = self.titan.model.jacob0(qMatrix2(i,:));                                 % Jacobian at current state
+
+                % Damped Least Squares (DLS) for low manipulability
+                m2 = sqrt(det(J2*J2'));
+                if m2 < self.epsilon
+                    lambda = (1 - m2/self.epsilon)*5E-2;
+                else
+                    lambda = 0;
+                end
+                invJ2 = inv(J2'*J2 + lambda *eye(6))*J2';                               % DLS inverse Jacobian
+                qdot2(i,:) = (invJ2*xdot2)';                                            % Joint velocities
+                qMatrix2(i+1,:) = qMatrix2(i,:) + self.deltaT*qdot2(i,:);                    % Update joint states
+            end
+
+            % Plot the UR3e movement
+            hold on;
+            for i = 1:self.total_steps
+                self.ur3e.model.animate(qMatrix(i,:));                                       % Animate UR3e robot
+                self.titan.model.animate(qMatrix2(i,:));                                     % Animate Kuka Titan robot
+                drawnow();
+            end
         end
+
 
         function updateJoints(self, source, ~)                              % issue here is that source changes the number
             sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
@@ -472,7 +521,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * d^-0.5;
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
             % path(1) = plot3(self.x1(1), self.x1(2), self.x1(3), 'r*');
             % path(100) = plot3(self.x2(1), self.x2(2), self.x2(3), 'r*');
