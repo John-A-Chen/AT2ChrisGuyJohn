@@ -5,76 +5,73 @@ clc
 hold on
 
 % Set parameters for the simulation
-ur3e = UR3e();                                                 % Load robot model
-t = 2;                                                          % Total time for one direction (s)
-deltaT = 0.02;                                                  % Control frequency
-steps = t / deltaT;                                            % Number of steps for one direction
-total_steps = 2 * steps;                                       % Total steps for forward and reverse
-delta = 2 * pi / steps;                                        % Small angle change
-epsilon = 0.1;                                                  % Threshold for manipulability/Damped Least Squares
-W = diag([1 1 1 0.1 0.1 0.1]);                                 % Weighting matrix for the velocity vector
+ur3e = UR3e();                                                 % Load robot model 1
+
+t = 2;                                                                      % Total time for one direction (s)
+deltaT = 0.02;                                                              % Control frequency
+steps = t/deltaT;                                                           % Number of steps for one direction
+total_steps = 2*steps;                                                      % Total steps for forward and backward
+epsilon = 0.1;                                                              % Threshold for manipulability/Damped Least Squares
+W = diag([1 1 1 0.1 0.1 0.1]);                                              % Weighting matrix for the velocity vector
 
 % Allocate array data
-qMatrix = zeros(total_steps, 7);                               % Array for UR3e joint angles
-qdot = zeros(total_steps, 7);                                  % Array for UR3e joint velocities
-theta = zeros(3, total_steps);                                 % Array for UR3e roll-pitch-yaw angles
-x = zeros(3, total_steps);                                     % Array for UR3e x-y-z trajectory
+qMatrix = zeros(total_steps, 7);                                             % Array for UR3e joint angles
+qdot = zeros(total_steps, 7);                                                % Array for UR3e joint velocities
+theta = zeros(3, total_steps);                                               % Array for UR3e roll-pitch-yaw angles
+x = zeros(3, total_steps);                                                   % Array for UR3e x-y-z trajectory
 
 view(90, 30)
 
-%% UR3e movement with RMRC (Vertical Circular Trajectory in XZ Plane)
-radius = 0.3;                          % Radius of the circle in the xz plane
-center = [0.5; 0; 0.5];                % Center of the circle in (x, y, z) coordinates
-theta(1, :) = 0;                       % Roll angle (fixed)
-theta(2, :) = 0;                       % Pitch angle (fixed)
-theta(3, :) = 0;                       % Yaw angle (fixed)
+%% UR3e movement with RMRC (Circular Trajectory)
+radius = 1;                  % Radius of the circle
+center = [0; 0; 0.5];        % Center of the circle in (x, y, z) coordinates, 0.5m away in Z
+theta(1,:) = 0;              % Roll angle (fixed)
+theta(2,:) = pi/2;           % Pitch angle (fixed)
+theta(3,:) = 0;              % Yaw angle (fixed)
 
-% Define angular positions over time for one full circle in the vertical plane
-s1 = linspace(0, 2 * pi, steps); 
+s1 = linspace(0, 2*pi, steps); % Define angular positions over time for one full circle
 for i = 1:steps
-    x(1, i) = center(1) + radius * cos(s1(i)); % x-coordinate for circular path in xz plane
-    x(2, i) = center(2);                       % y-coordinate remains fixed
-    x(3, i) = center(3) + radius * sin(s1(i)); % z-coordinate for circular path
+    x(1,i) = center(1) + radius * cos(s1(i)); % x-coordinate for circular path
+    x(2,i) = center(2);                        % y-coordinate (fixed at center)
+    x(3,i) = center(3) + radius * sin(s1(i)); % z-coordinate for circular path
 end
 
-% Extend the trajectory to include a reverse circular path
-x(:, steps + 1:total_steps) = x(:, steps:-1:1);
+% Concatenate to complete the circular trajectory by mirroring in reverse
+x = [x, x(:, end:-1:1)];  % Extend trajectory to move forward and then reverse
 
-% Initial transformation with a small offset to avoid singularity
-initial_rotation = rpy2r(theta(1, 1), theta(2, 1), theta(3, 1));
-initial_position = x(:, 1);
-T = [initial_rotation initial_position; 0 0 0 1]; % Transformation for the initial pose
-
-% Check if the initial pose is valid
+T = [rpy2r(theta(1, 1), theta(2, 1), theta(3, 1)) x(:, 1); zeros(1, 3) 1]; % Initial transformation
 q0 = zeros(1, 7); % Initial guess for joint angles
-try
-    qMatrix(1, :) = ur3e.model.ikcon(T, q0); % Solve joint angles for first waypoint
-catch ME
-    error('Initial pose is invalid for IK computation: %s', ME.message);
-end
+qMatrix(1, :) = ur3e.model.ikcon(T, q0); % Solve joint angles for first waypoint
+
+% Check size of x to confirm number of trajectory points
+disp(size(x)); % Display size of x for debugging
 
 % RMRC loop for UR3e following the circular trajectory
 for i = 1:total_steps - 1
-    T = ur3e.model.fkine(qMatrix(i, :)); % Get forward transformation at current joint state
-    
-    % Check that we're not accessing an out-of-bounds index
-    if i + 1 <= size(x, 2) % Ensure we do not exceed the bounds of x
-        deltaX = x(:, i + 1) - T(1:3, 4); % Position error for next waypoint
-    else
-        warning('Index exceeds trajectory bounds. Ending simulation.');
-        break; % Exit the loop if out of bounds
-    end
+    % T = ur3e.model.fkine(qMatrix(i, :)).T; % Get forward transformation at current joint state
+    % 
+    % % Check if we're about to exceed the array bounds
+    % if i + 1 <= size(x, 2) % Ensure we do not exceed the bounds of x
+    %     deltaX = x(:, i + 1) - T(1:3, 4); % Position error for next waypoint
+    % else
+    %     warning('Index exceeds trajectory bounds. Ending simulation.');
+    %     break; % Exit the loop if out of bounds
+    % end
 
     Rd = rpy2r(theta(1, i + 1), theta(2, i + 1), theta(3, i + 1)); % Desired rotation matrix
-    Ra = T(1:3, 1:3);                            % Current end-effector rotation matrix
-    
-    % Add a small offset to rotation error to avoid singularity
-    Rdot = (1 / deltaT) * (Rd - Ra);              % Rotation matrix error
-    S = Rdot * Ra';                               % Skew symmetric matrix
-    linear_velocity = (1 / deltaT) * deltaX;     % Linear velocity
+    Ra = T(1:3, 1:3);                             % Current end-effector rotation matrix
+
+    T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1];         % Transformation of first point
+    q0 = zeros(1,7);                                                            % Initial guess for joint angles
+    qMatrix(1,:) = ur3e.model.ikcon(T,q0);      
+
+    % Calculate rotation error
+    Rdot = (1 / deltaT) * (Rd - Ra);               % Rotation matrix error
+    S = Rdot * Ra';                                % Skew symmetric matrix
+    linear_velocity = (1 / deltaT) * deltaX;      % Linear velocity
     angular_velocity = [S(3, 2); S(1, 3); S(2, 1)]; % Angular velocity
     xdot = W * [linear_velocity; angular_velocity]; % End-effector velocity
-    J = ur3e.model.jacob0(qMatrix(i, :));        % Jacobian at current state
+    J = ur3e.model.jacob0(qMatrix(i, :));         % Jacobian at current state
 
     % Damped Least Squares (DLS) for low manipulability
     m = sqrt(det(J * J'));
@@ -91,7 +88,7 @@ end
 %% Plot the movement
 hold on;
 for i = 1:total_steps
-    ur3e.model.animate(qMatrix(i, :));           % Animate UR3e robot
-    plot3(x(1, i), x(2, i), x(3, i), 'k.');      % Plot circular trajectory
+    ur3e.model.animate(qMatrix(i, :));                                       % Animate UR3e robot
+    plot3(x(1, i), x(2, i), x(3, i), 'k.');
     drawnow();
 end
