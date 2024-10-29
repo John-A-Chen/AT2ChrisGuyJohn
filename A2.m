@@ -39,7 +39,7 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
-            self.q_ur3e = zeros(1,6);
+            self.q_ur3e = zeros(1,7);
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
@@ -133,8 +133,8 @@ classdef A2 < handle
                 'Position', [1200 20 300 20], 'String', 'uq6', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
             self.s(13) = uicontrol(sliderProperties, ...
-                'Position', [1200 10 300 20], 'String', 'uq7', ...
-                'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
+                'Position', [1700 10 300 20], 'String', 'uq7', ...
+                'Min', -360,'Max', 360, "Value", self.q_ur3e(7) * 180/pi);
 
             self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
