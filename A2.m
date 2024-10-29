@@ -6,10 +6,13 @@ classdef A2 < handle
         q_ur3e;
         titan;
         q_titan;
+        x1;
+        x2;
         stopped = false;
         a;
         s = gobjects(1,12);
         b = gobjects(1,4);
+        f = gobjects(1,20);
     end
 
     methods
@@ -29,6 +32,8 @@ classdef A2 < handle
             self.q_ur3e = zeros(1,6);
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
+            self.x1 = zeros(3,1);
+            self.x2 = zeros(3,1);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
@@ -56,6 +61,8 @@ classdef A2 < handle
                 'Position', [100 200 100 40],'Callback', @self.freeControl);
             self.b(2) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [100 150 100 40],'Callback', @self.sequence);
+            self.b(3) = uicontrol('Style','pushbutton','String','Path Planning', ...
+                'Position', [100 100 100 40],'Callback', @self.pathPlanning);
         end
 
         function freeControl(self, source, ~)
@@ -63,12 +70,13 @@ classdef A2 < handle
             delete(source);
             delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
                 self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
-                self.s(9); self.s(10); self.s(11); self.s(12)]);
+                self.s(9); self.s(10); self.s(11); self.s(12); ]);
             sliderProperties = struct('Style', 'slider', 'Value', 0, ...
                 'SliderStep', [0.01 0.1], 'Callback', @self.updateJoints);
             self.s(1) = uicontrol(sliderProperties, ...
                 'Position', [10 120 300 20], 'String', 'tq1', ...
                 'Min', -150 ,  'Max', 150, "Value", self.q_titan(1) * 180/pi);
+            self.f(1) = uilabel("Titan q1", 'Position', [310 120 300 20]);
             self.s(2) = uicontrol(sliderProperties, ...
                 'Position', [10 100 300 20], 'String', 'tq2', ...
                 'Min', -40 ,  'Max', 107.5, "Value", self.q_titan(2) * 180/pi);
@@ -123,7 +131,44 @@ classdef A2 < handle
             self.b(2) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [110 200 100 50],'Callback', @self.freeControl);
 
+            
+
             self.DLS();
+        end
+
+        function pathPlanning(self, source, ~)
+            self.stopped = false;
+            delete(source);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12)]);
+            self.b(3) = uicontrol('Style','pushbutton','String','E-Stop', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            self.b(4) = uicontrol('Style','pushbutton','String','Confirm', ...
+                'Position', [110 200 100 50],'Callback', @self.updatePath);
+
+            sliderProperties = struct('Style', 'slider', 'Value', 0, ...
+                'SliderStep', [0.01 0.1], 'Callback', @self.updatePath);
+
+            self.s(1) = uicontrol(sliderProperties, ...
+                'Position', [10 120 300 20], 'String', 'x1', ...
+                'Min', -150 ,  'Max', 150, "Value", self.x1(1) * 180/pi);
+            self.s(2) = uicontrol(sliderProperties, ...
+                'Position', [10 100 300 20], 'String', 'y1', ...
+                'Min', -40 ,  'Max', 107.5, "Value", self.x1(2) * 180/pi);
+            self.s(3) = uicontrol(sliderProperties, ...
+                'Position', [10 80 300 20], 'String', 'z1', ...
+                'Min', -200 ,  'Max', 55, "Value", self.x1(3) * 180/pi);
+
+            self.s(7) = uicontrol(sliderProperties, ...
+                'Position', [1200 120 300 20], 'String', 'x2', ...
+                'Min', -150 ,  'Max', 150, "Value", self.x2(1) * 180/pi);
+            self.s(8) = uicontrol(sliderProperties, ...
+                'Position', [1200 100 300 20], 'String', 'y2', ...
+                'Min', -40 ,  'Max', 107.5, "Value", self.x2(2) * 180/pi);
+            self.s(9) = uicontrol(sliderProperties, ...
+                'Position', [1200 80 300 20], 'String', 'z2', ...
+                'Min', -200 ,  'Max', 55, "Value", self.x2(3) * 180/pi);
         end
 
         function DLS(self)
@@ -202,6 +247,12 @@ classdef A2 < handle
             % self.ur3e.model.animate(q2);
         end
 
+        function updatePath(self, source, ~)
+            sliderValue1 = get(source, 'Value');
+            disp(source)
+            disp(self.q_titan);
+        end
+
         function eStop(self, source, ~)
             % disp(so)
             disp("E has been stopped");
@@ -215,6 +266,8 @@ classdef A2 < handle
                 'Position', [100 150 100 50],'Callback', @self.freeControl);
             self.b(2) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [100 200 100 50],'Callback', @self.sequence);
+            self.b(3) = uicontrol('Style','pushbutton','String','Path Planning', ...
+                'Position', [100 100 100 50],'Callback', @self.pathPlanning);
         end
     end
 end
