@@ -1,9 +1,3 @@
-close all
-clear all
-clc 
-
-hold on
-
 % Set parameters for the simulation
 ur3e = UR3e();                                                 % Load robot model 1
 
@@ -22,11 +16,11 @@ x = zeros(3, steps);                                                   % Array f
 view(180, 45)
 
 %% UR3e movement with RMRC (Circular Trajectory)
-radius = 1;                  % Radius of the circle
+radius = 0.15;                  % Radius of the circle
 center = [0; 1; 1];        % Center of the circle in (x, y, z) coordinates, 0.5m away in Z
 theta(1,:) = 0;              % Roll angle (fixed)
-theta(2,:) = pi/2;           % Pitch angle (fixed)
-theta(3,:) = 0;              % Yaw angle (fixed)
+theta(2,:) = 5*pi/9;           % Pitch angle (fixed)
+theta(3,:) = 5*pi/9;              % Yaw angle (fixed)
 
 s1 = lspb(0, 2*pi, steps); % Define angular positions over time for one full circle
 for i = 1:steps
@@ -38,9 +32,9 @@ end
 % Concatenate to complete the circular trajectory by mirroring in reverse
 x = [x, x(:, end:-1:1)];  % Extend trajectory to move forward and then reverse
 
-T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1]  % Initial transformation
-q0 = zeros(1, 7) % Initial guess for joint angles
-qMatrix(1, :) = ur3e.model.ikcon(T, q0) % Solve joint angles for first waypoint
+T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1];  % Initial transformation
+q0 = zeros(1, 7); % Initial guess for joint angles
+qMatrix(1, :) = ur3e.model.ikcon(T, q0); % Solve joint angles for first waypoint
 
 % Check size of x to confirm number of trajectory points
 disp(size(x)); % Display size of x for debugging
