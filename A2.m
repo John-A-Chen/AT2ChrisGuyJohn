@@ -108,7 +108,7 @@ classdef A2 < handle
                 'Position', [1200 20 1 1], 'String', 'uq7', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
 
-            self.b(3) = uicontrol('Style','pushbutton','String','E-Stop', ...
+            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
             self.b(4) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [110 200 100 50],'Callback', @self.sequence);
@@ -153,6 +153,25 @@ classdef A2 < handle
             qMatrix(1,:) = self.ur3e.model.ikcon(transl(x(:,1)));
             self.ur3e.model.animate(qMatrix1(1,:));
 
+            self.s(1) = uicontrol(sliderProperties, ...
+                'Position', [10 120 300 20], 'String', 'x1', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x1(1));
+            self.s(2) = uicontrol(sliderProperties, ...
+                'Position', [10 100 300 20], 'String', 'y1', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x1(2));
+            self.s(3) = uicontrol(sliderProperties, ...
+                'Position', [10 80 300 20], 'String', 'z1', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x1(3));
+
+            self.s(7) = uicontrol(sliderProperties, ...
+                'Position', [1200 120 300 20], 'String', 'x2', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x2(1));
+            self.s(8) = uicontrol(sliderProperties, ...
+                'Position', [1200 100 300 20], 'String', 'y2', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x2(2));
+            self.s(9) = uicontrol(sliderProperties, ...
+                'Position', [1200 80 300 20], 'String', 'z2', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x2(3));
             for i = 1:steps-1
                 T = self.ur3e.model.fkine(qMatrix1(i,:)).T;                 % End-effector transform at current joint state
                 xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
@@ -215,23 +234,28 @@ classdef A2 < handle
                 qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
                 errorValue(:,i) = xdot - J*qdot;                            % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
-                self.titan.model.plot(qMatrix(i+1,:));
+                self.titan.model.animate(qMatrix(i+1,:));
+                drawnow
                 disp(i)
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
                     break
                 end
                 % if readDigitalPin(self.a, "D23")
-                %     eStop()
-                %     break
+                %     break;
                 % end
             end
+            delete(self.b(3));
+            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+            self.b(1) = uicontrol('Style','pushbutton','String','Restart', ...
+                'Position', [110 100 100 50],'Callback', @self.sequence);
         end
 
         function updateJoints(self, source, ~)                              % issue here is that source changes the number
             sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
             sliderValue2 = get(source, 'Value');
-            disp(source);
+            % disp(source);
             name = source.String;
             number = str2num(['uint8(',name(3),')']);
             if strcmp(name(1),'t')
@@ -255,8 +279,34 @@ classdef A2 < handle
             % self.ur3e.model.animate(q2);
         end
 
+        function updatePath(self, source, ~)
+            sliderValue1 = get(source, 'Value');
+            name = source.String;
+            number = str2num(['uint8(',name(2),')']);
+            if number == 1
+                switch name(1)
+                    case 'x'
+                        self.x1(1) = sliderValue1;
+                    case 'y'
+                        self.x1(2) = sliderValue1;
+                    case 'z'
+                        self.x1(3) = sliderValue1;
+                end
+            elseif number == 2
+                switch name(1)
+                    case 'x'
+                        self.x2(1) = sliderValue1;
+                    case 'y'
+                        self.x2(2) = sliderValue1;
+                    case 'z'
+                        self.x2(3) = sliderValue1;
+                end
+            end
+            disp(self.x1);
+            disp(self.x2);
+        end
+
         function eStop(self, source, ~)
-            % disp(so)
             disp("E has been stopped");
             self.stopped = true;
             delete(source);
