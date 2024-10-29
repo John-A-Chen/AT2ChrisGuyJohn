@@ -18,6 +18,7 @@ classdef A2 < handle
         total_steps;
         epsilon;
         deltaT;
+        iCurrent;
 
 
     end
@@ -45,6 +46,7 @@ classdef A2 < handle
             self.total_steps = 2 * self.steps;
             self.epsilon = 0.1;
             self.deltaT = 0.02;
+            self.iCurrent = 1;
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
@@ -284,12 +286,13 @@ classdef A2 < handle
                 % self.titan.model.animate(q);
                 % drawnow;
             end
-
-            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)'));
-            self.titan.model.animate(qMatrix(1,:));
+            i = self.iCurrent;
+            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'));
+            self.titan.model.animate(qMatrix(i,:));
             drawnow
-
-            for i = 1:steps-1
+            
+            % for i = 1:steps-1
+            while i <= 99
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
                 xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
                 J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
@@ -307,14 +310,20 @@ classdef A2 < handle
                 drawnow
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
+                    self.iCurrent = i;
                     break
+                    
                 end
+                i = i + 1;
                 % if readDigitalPin(self.a, "D23")
                 %     break
                 % end
             end
 
+            
+
             if ~self.stopped
+                self.iCurrent = 1;
                 delete(self.b(3));
                 self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                     'Position', [110 150 100 50],'Callback', @self.eStop);
