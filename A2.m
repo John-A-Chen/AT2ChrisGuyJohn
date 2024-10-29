@@ -30,7 +30,7 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
-            self.q_ur3e = zeros(1,7);
+            self.q_ur3e = zeros(1,6);
             self.titan = KukaTitan(transl(0, 0, 0.05));
             self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
@@ -65,7 +65,7 @@ classdef A2 < handle
                 'Position', [100 150 100 40],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
-            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+            self.b(4) = uicontrol('Style','pushbutton','String','Controller', ...
                 'Position', [100 50 100 40],'Callback', @self.controller);
         end
 
@@ -137,8 +137,8 @@ classdef A2 < handle
             self.b(2) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [110 200 100 50],'Callback', @self.freeControl);
 
-            self.DLS();
-            % self.DLS2();
+            % self.DLS();
+            self.DLS2();
         end
 
         function pathPlacement(self, source, ~)
@@ -315,7 +315,7 @@ classdef A2 < handle
             steps = 200;                                                    % No. of steps
             deltaT = t/steps;                                               % Discrete time step
             deltaTheta = 4*pi/steps;                                        % Small angle change
-            qMatrix1 = zeros(steps,7);                                      % Assign memory for joint angles
+            qMatrix1 = zeros(steps,6);                                      % Assign memory for joint angles
             x = zeros(3,steps);                                             % Assign memory for trajectory
             m = zeros(1,steps);                                             % For recording measure of manipulability
             errorValue = zeros(3,steps);                                    % For recording velocity error
@@ -324,9 +324,9 @@ classdef A2 < handle
             epsilon = 0.5;
 
             for i = 1:steps
-                x(:,i) = [1.5*cos(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                    1.5*sin(deltaTheta*i) + 0.45*cos(deltaTheta*i)
-                    3];
+                x(:,i) = [3 + 0.2*cos(deltaTheta*i) + 0.1*cos(deltaTheta*i)
+                    2 + 0.2*sin(deltaTheta*i) + 0.1*cos(deltaTheta*i)
+                    1.3];
                 % self.elipsoidOnRobotUR3e();
             end
 
@@ -348,15 +348,16 @@ classdef A2 < handle
                 qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
                 errorValue(:,i) = xdot - J*qdot;                            % Velocity error
                 qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
-                self.ur3e.model.plot(qMatrix(i+1,:));
-                disp(i)
+                self.ur3e.model.animate(qMatrix(i+1,:));
+                % disp(i)
+                drawnow
                 self.q_ur3e = qMatrix(i+1,:);
                 if self.stopped
                     break
                 end
-                if readDigitalPin(self.a, "D23")
-                    break
-                end
+                % if readDigitalPin(self.a, "D23")
+                %     break
+                % end
             end
 
         end
@@ -494,7 +495,7 @@ classdef A2 < handle
                 'Position', [100 200 100 50],'Callback', @self.sequence);
             self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
                 'Position', [100 100 100 40],'Callback', @self.pathPlacement);
-            self.b(3) = uicontrol('Style','pushbutton','String','Controller', ...
+            self.b(4) = uicontrol('Style','pushbutton','String','Controller', ...
                 'Position', [100 50 100 40],'Callback', @self.controller);
         end
         
