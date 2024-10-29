@@ -20,6 +20,8 @@ classdef A2 < handle
         deltaT;
         iCurrent;
 
+        c;
+        r;
 
     end
 
@@ -47,6 +49,9 @@ classdef A2 < handle
             self.epsilon = 0.1;
             self.deltaT = 0.02;
             self.iCurrent = 1;
+
+            self.c = [2.5; 1.5; 1];
+            self.r = [0.6; 0.6; 0.6];
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
@@ -66,6 +71,7 @@ classdef A2 < handle
                 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
             PlaceObject('environment.PLY',[0,0,0]);
             light("Style","local","Position",[-10 -10 3]);
+            % ellipsoid(self.c(1),self.c(2),self.c(3),self.r(1),self.r(2),self.r(3));
         end
 
         function startUI(self, ~)
@@ -151,7 +157,8 @@ classdef A2 < handle
 
             % self.DLS();
             % self.DLS2();
-            self.rmrc5();
+            % self.rmrc5();
+            self.welding();
         end
 
         function pathPlacement(self, source, ~)
@@ -194,7 +201,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * d^-0.5;
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
         end
 
@@ -287,7 +299,7 @@ classdef A2 < handle
                 % drawnow;
             end
             i = self.iCurrent;
-            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'));
+            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'), [0,0,0.5,0,0,0]);
             self.titan.model.animate(qMatrix(i,:));
             drawnow
             
@@ -328,6 +340,10 @@ classdef A2 < handle
                 self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                     'Position', [110 150 100 50],'Callback', @self.eStop);
             end
+        end
+
+        function welding(self)
+
         end
 
         function rmrc5(self)
@@ -505,7 +521,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * d^-0.5;
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
             % path(1) = plot3(self.x1(1), self.x1(2), self.x1(3), 'r*');
             % path(100) = plot3(self.x2(1), self.x2(2), self.x2(3), 'r*');

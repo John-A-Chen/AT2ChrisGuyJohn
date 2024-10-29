@@ -20,6 +20,8 @@ classdef A2 < handle
         deltaT;
         iCurrent;
 
+        c = [3; 2; 1];
+        r = [0.4; 0.4; 0.4];
 
     end
 
@@ -151,7 +153,8 @@ classdef A2 < handle
 
             % self.DLS();
             % self.DLS2();
-            self.rmrc5();
+            % self.rmrc5();
+            self.welding();
         end
 
         function pathPlacement(self, source, ~)
@@ -194,7 +197,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * 
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
         end
 
@@ -286,11 +294,11 @@ classdef A2 < handle
                 % self.titan.model.animate(q);
                 % drawnow;
             end
-
-            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)'));
-            self.titan.model.animate(qMatrix(1,:));
-            drawnow
             i = self.iCurrent;
+            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'));
+            self.titan.model.animate(qMatrix(i,:));
+            drawnow
+            
             % for i = 1:steps-1
             while i <= 99
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
@@ -310,8 +318,9 @@ classdef A2 < handle
                 drawnow
                 self.q_titan = qMatrix(i+1,:);
                 if self.stopped
-                    break
                     self.iCurrent = i;
+                    break
+                    
                 end
                 i = i + 1;
                 % if readDigitalPin(self.a, "D23")
@@ -327,6 +336,10 @@ classdef A2 < handle
                 self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                     'Position', [110 150 100 50],'Callback', @self.eStop);
             end
+        end
+
+        function welding(self)
+
         end
 
         function rmrc5(self)
@@ -504,6 +517,7 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
+                
                 self.path(i) = plot3(x,y,z,'r*');
             end
             % path(1) = plot3(self.x1(1), self.x1(2), self.x1(3), 'r*');
