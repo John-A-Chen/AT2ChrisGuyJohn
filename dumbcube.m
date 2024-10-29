@@ -1,0 +1,16 @@
+
+[Y,Z] = meshgrid(-0.1:0.01:0.1,-0.1:0.01:0.1);
+sizeMat = size(Y);
+X = repmat(a,sizeMat(1),sizeMat(2));
+oneSideOfCube_h = surf(X,Y,Z);
+cubePoints = [X(:),Y(:),Z(:)];
+cubePoints = [ cubePoints ...
+    ; cubePoints * rotz(pi/2)...
+    ; cubePoints * rotz(pi) ...
+    ; cubePoints * rotz(3*pi/2) ...
+    ; cubePoints * roty(pi/2) ...
+    ; cubePoints * roty(-pi/2)];
+% cubeAtOigin_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'r.');
+cubePoints = cubePoints + repmat([2,0,1.5],size(cubePoints,1),1);
+cube_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'b.');
+set(cube_h, 'Visible', 'off');

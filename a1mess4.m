@@ -1,7 +1,6 @@
-function rmrc5()
 % Set parameters for the simulation
-ur3e = UR3e(transl(3.2, 1.75, 0.925));                                                 % Load robot model 1
-titan = KukaTitan(transl(0,0.5,0));                                                        % Load robot model 2
+ur3e = UR3e(transl(2,0,0));                                                 % Load robot model 1
+titan = KukaTitan(transl(-0.75,0.5,0.05));                                                        % Load robot model 2
 
 t = 1;                                                                      % Total time for one direction (s)
 deltaT = 0.02;                                                              % Control frequency
@@ -16,26 +15,26 @@ W = diag([1 1 1 0.1 0.1 0.1]);                                              % We
 qMatrix = zeros(total_steps,7);                                             % Array for UR3e joint angles
 qMatrix2 = zeros(total_steps,6);                                            % Array for Kuka Titan joint angles
 qdot = zeros(total_steps,7);                                                % Array for UR3e joint velocities
-qdot2 = zeros(total_steps,6);
+qdot2 = zeros(total_steps,6);                                                
 theta = zeros(3,total_steps);                                               % Array for UR3e roll-pitch-yaw angles
 theta2 = zeros(3,total_steps);                                              % Array for Kuka Titan roll-pitch-yaw angles
 x = zeros(3,total_steps);                                                   % Array for UR3e x-y-z trajectory
-x2 = zeros(3,total_steps);                                                  % Array for Kuka Titan x-y-z trajectory
+x2 = zeros(3,total_steps);                                                  % Array for Kuka Titan x-y-z trajectory 
 
-% UR3e movement with RMRC
+%% UR3e movement with RMRC
 s1 = lspb(0,1,steps);                                                       % Trapezoidal trajectory scalar
 for i=1:steps
-    x(1,i) = 2;                                                             % Points in x (fixed)
-    x(2,i) = (1-s1(i))*1.25 + s1(i)*3.25;                                        % Points in y (move forward)
-    x(3,i) = 1.5;                                                             % Points in z (fixed)
+    x(1,i) = 1;                                                             % Points in x (fixed)
+    x(2,i) = (1-s1(i))*-1 + s1(i)*1;                                        % Points in y (move forward)
+    x(3,i) = 1;                                                             % Points in z (fixed)
     theta(1,i) = 0;                                                         % Roll angle
     theta(2,i) = 5*pi/9;                                                    % Pitch angle
     theta(3,i) = 0;                                                         % Yaw angle
 end
 for i=1:steps
-    x(1,steps+i) = 2;                                                       % Points in x (fixed)
-    x(2,steps+i) = (1-s1(i))*3.25 + s1(i)*1.25;                                  % Points in y (move backward)
-    x(3,steps+i) = 1.5;                                                       % Points in z (fixed)
+    x(1,steps+i) = 1;                                                       % Points in x (fixed)
+    x(2,steps+i) = (1-s1(i))*1 + s1(i)*-1;                                  % Points in y (move backward)
+    x(3,steps+i) = 1;                                                       % Points in z (fixed)
     theta(1,steps+i) = 0;                                                   % Roll angle
     theta(2,steps+i) = 5*pi/9;                                              % Pitch angle
     theta(3,steps+i) = 0;                                                   % Yaw angle
@@ -70,24 +69,75 @@ for i = 1:total_steps-1
     qMatrix(i+1,:) = qMatrix(i,:) + deltaT*qdot(i,:);                       % Update joint states
 end
 
-% Kuka movement with RMRC
+%% Kuka movement with RMRC
 s2 = lspb(0,1,steps);                                                        % Trapezoidal trajectory scalar
-for i=1:steps
-    x2(1,i) = 2;                                                            % Points in x (fixed)
-    x2(2,i) = (1-s2(i))*1.25 + s2(i)*3.25;                                 % Points in y (move forward)
-    x2(3,i) = 1.5;                                                          % Points in z (fixed)
-    theta2(1,i) = 0;                                                        % Roll angle
-    theta2(2,i) = 5*pi/9;                                                   % Pitch angle
-    theta2(3,i) = 0;                                                        % Yaw angle
+for i = 1:steps
+    % First segment
+    x2(:, i) = [(1 - s2(i)) * 1.0 + s2(i) * 2; 
+                 (1 - s2(i)) * 3 + s2(i) * 2; 
+                 (1 - s2(i)) * 1.3 + s2(i) * 1.75];
+    theta2(:, i) = [0; 5 * pi / 9; 0]; 
 end
-for i=1:steps
-    x2(1,steps+i) = 2;                                                      % Points in x (fixed)
-    x2(2,steps+i) = (1-s2(i))*3.25 + s2(i)*1.25;                           % Points in y (move backward)
-    x2(3,steps+i) = 1.5;                                                    % Points in z (fixed)
-    theta2(1,steps+i) = 0;                                                  % Roll angle
-    theta2(2,steps+i) = 5*pi/9;                                             % Pitch angle
-    theta2(3,steps+i) = 0;                                                  % Yaw angle
+
+for i = 1:steps
+    % Second segment
+    x2(:, steps + i) = [(1 - s2(i)) * 2 + s2(i) * -0.375; 
+                        (1 - s2(i)) * 2 + s2(i) * 2; 
+                        (1 - s2(i)) * 1.75 + s2(i) * 0.9];
+    theta2(:, steps + i) = [0; 5 * pi / 9; 0]; 
 end
+
+for i = 1:steps
+    % Third segment
+    x2(:, 2 * steps + i) = [(1 - s2(i)) * -0.375 + s2(i) * 1.4; 
+                            2; 
+                            (1 - s2(i)) * 0.9 + s2(i) * 1.3];
+    theta2(:, 2 * steps + i) = [0; 5 * pi / 9; 0]; 
+end
+% 
+% for i = 1:steps
+%     % 4 segment
+%     x2(:, i) = [(1 - s2(i)) * 1.4 + s2(i) * 2; 
+%                  (1 - s2(i)) * 3 + s2(i) * 2; 
+%                  (1 - s2(i)) * 1.3 + s2(i) * 1.75];
+%     theta2(:, i) = [0; 5 * pi / 9; 0]; 
+% end
+% for i = 1:steps
+%     % 5 segment
+%     x2(:, steps + i) = [(1 - s2(i)) * 2 + s2(i) * -0; 
+%                         (1 - s2(i)) * 2 + s2(i) * 2; 
+%                         (1 - s2(i)) * 1.75 + s2(i) * 0.9];
+%     theta2(:, steps + i) = [0; 5 * pi / 9; 0]; 
+% end
+% for i = 1:steps
+%     % 6 segment
+%     x2(:, 2 * steps + i) = [(1 - s2(i)) * -0 + s2(i) * 1.8; 
+%                             2; 
+%                             (1 - s2(i)) * 0.9 + s2(i) * 1.3];
+%     theta2(:, 2 * steps + i) = [0; 5 * pi / 9; 0]; 
+% end
+% 
+% for i = 1:steps
+%     % 7 segment
+%     x2(:, i) = [(1 - s2(i)) * 1.8 + s2(i) * 2; 
+%                  (1 - s2(i)) * 3 + s2(i) * 2; 
+%                  (1 - s2(i)) * 1.3 + s2(i) * 1.75];
+%     theta2(:, i) = [0; 5 * pi / 9; 0]; 
+% end
+% for i = 1:steps
+%     % 8 segment
+%     x2(:, steps + i) = [(1 - s2(i)) * 2 + s2(i) * 0.375; 
+%                         (1 - s2(i)) * 2 + s2(i) * 2; 
+%                         (1 - s2(i)) * 1.75 + s2(i) * 0.9];
+%     theta2(:, steps + i) = [0; 5 * pi / 9; 0]; 
+% end
+% for i = 1:steps
+%     % 9 segment
+%     x2(:, 2 * steps + i) = [(1 - s2(i)) * 0.375 + s2(i) * 0; 
+%                             2; 
+%                             (1 - s2(i)) * 0.9 + s2(i) * 1.3];
+%     theta2(:, 2 * steps + i) = [0; 5 * pi / 9; 0]; 
+% end
 
 T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1)) x2(:,1); zeros(1,3) 1];    % Transformation of first point
 q1 = zeros(1,6);                                                            % Initial guess for joint angles
@@ -118,11 +168,12 @@ for i = 1:total_steps-1
     qMatrix2(i+1,:) = qMatrix2(i,:) + deltaT*qdot2(i,:);                    % Update joint states
 end
 
-% Plot the UR3e movement
+%% Plot the movement
 hold on;
 for i = 1:total_steps
     ur3e.model.animate(qMatrix(i,:));                                       % Animate UR3e robot
     titan.model.animate(qMatrix2(i,:));                                     % Animate Kuka Titan robot
     drawnow();
 end
-% end
+
+

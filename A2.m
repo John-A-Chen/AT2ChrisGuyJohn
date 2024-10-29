@@ -23,6 +23,8 @@ classdef A2 < handle
         c;
         r;
 
+        trVertices;
+
     end
 
     methods
@@ -40,7 +42,7 @@ classdef A2 < handle
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
             self.q_ur3e = zeros(1,7);
-            self.titan = KukaTitan(transl(0, 0, 0.05));
+            self.titan = KukaTitan(transl(-0.75,0.5,0.05));
             self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
             self.x2 = zeros(3,1);
@@ -158,7 +160,8 @@ classdef A2 < handle
             % self.DLS();
             % self.DLS2();
             % self.rmrc5();
-            self.welding();
+            % self.welding();
+            self.jTRAJICwelding();
         end
 
         function pathPlacement(self, source, ~)
@@ -342,8 +345,72 @@ classdef A2 < handle
             end
         end
 
-        function welding(self)
+        function jTRAJICwelding(self)
+            startPositions = ...
+                [-1.0, 3.5, 1.3;
+                -1.4, 3.5, 1.3;
+                -1.8, 3.5, 1.3];
 
+            weldPosition = ...
+                [2, 2, 1.75;
+                2, 2, 1.75;
+                2, 2, 1.75];
+
+            endPositions = ...
+                [-0.375, 2, 0.9;
+                0.0, 2, 0.9;
+                0.375, 2, 0.9];
+
+            hflange = cell(1, size(startPositions, 1));
+            for i = 1:size(startPositions, 1)
+                hflange{i} = PlaceObject('flange.ply', startPositions(i, :));
+            end
+
+            flangeOrigin = PlaceObject('flange0.ply', [0, 0, 0]);
+            vertices = get(flangeOrigin, 'Vertices');
+            delete(flangeOrigin);
+
+            numSteps = 50;
+
+            for i = 1:size(startPositions, 1)
+                whereRobot = self.titan.model.getpos();
+                startTransform = transl(startPositions(i, :)) * trotx(pi);
+                startJointAngles = self.titan.model.ikcon(startTransform);
+                qmatrix = jtraj(whereRobot, startJointAngles, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qmatrix(step, :));
+                    pause(0.05);
+                end
+
+                tWeld = eye(4) * transl(weldPosition(i, :)) * trotx(pi);
+                qWeld = self.titan.model.ikcon(tWeld);
+                qWeldMatrix = jtraj(startJointAngles, qWeld, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qWeldMatrix(step, :));
+                    set(hflange{i}, 'Vertices', self.trVertices(:, 1:3));
+                    drawnow
+                    pause(0.05);
+                end
+
+                pause(5);
+                tEnd = eye(4) * transl(endPositions(i, :)) * trotx(pi);
+                qEnd = self.titan.model.ikcon(tEnd);
+                qEndMatrix = jtraj(qWeld, qEnd, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qEndMatrix(step, :));
+                    whereEndEffector = self.titan.model.fkine(qEndMatrix(step, :));
+                    self.trVertices = [vertices, ones(size(vertices, 1), 1)] * whereEndEffector.T';
+
+                    set(hflange{i}, 'Vertices',self.trVertices(:, 1:3));
+                    drawnow();
+                    pause(0.05);
+                end
+                delete(hflange{i});
+                PlaceObject('flange.ply', endPositions(i, :));
+            end
         end
 
         function rmrc5(self)
@@ -463,7 +530,6 @@ classdef A2 < handle
                 drawnow();
             end
         end
-
 
         function updateJoints(self, source, ~)                              % issue here is that source changes the number
             sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
