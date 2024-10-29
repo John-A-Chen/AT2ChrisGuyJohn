@@ -10,6 +10,24 @@ classdef A2 < handle
         a;
         s = gobjects(1,12);
         b = gobjects(1,4);
+        centerPoints = [
+            0, 0, 0;       % Link 1
+            0, 0, 0.14;    % Link 2
+            0, 0, 0.14;    % Link 3
+            0, 0, 0;       % Link 4
+            0, 0, 0;       % Link 5
+            0, 0, 0;       % Link 6
+            ];
+
+        radii = [
+            0.2, 0.2, 0.2;   % Link 1
+            0.28, 0.2, 0.28; % Link 2
+            0.4, 0.2, 0.28;  % Link 3
+            0.2, 0.2, 0.2;   % Link 4
+            0.2, 0.2, 0.2;   % Link 5
+            0.2, 0.2, 0.2;   % Link 6
+            ];
+
     end
 
     methods
@@ -33,6 +51,7 @@ classdef A2 < handle
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
             self.startUI();
+            self.defineObstacle(2,2,2,-0.5,0.5,-0.5,0.5);
         end
 
         function setupEnvironment(self)
@@ -216,5 +235,26 @@ classdef A2 < handle
             self.b(2) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [100 200 100 50],'Callback', @self.sequence);
         end
+        function defineObstacle(self, obsX, obsY, obsZ, a, b, c, d)
+            %% make the cube
+            % [Y,Z] = meshgrid(-0.5:0.05:0.5,-0.5:0.05:0.5);
+            [Y,Z] = meshgrid(a:0.05:b,c:0.05:d);
+            sizeMat = size(Y);
+            X = repmat(0.5,sizeMat(1),sizeMat(2));
+            oneSideOfCube_h = surf(X,Y,Z);
+            cubePoints = [X(:),Y(:),Z(:)];
+            cubePoints = [ cubePoints ...
+                ; cubePoints * rotz(pi/2)...
+                ; cubePoints * rotz(pi) ...
+                ; cubePoints * rotz(3*pi/2) ...
+                ; cubePoints * roty(pi/2) ...
+                ; cubePoints * roty(-pi/2)];
+            % cubeAtOigin_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'r.');
+            cubePoints = cubePoints + repmat([obsX,obsY,obsZ],size(cubePoints,1),1);
+            cube_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'b.');
+            % set(cube_h, 'Visible', 'off');
+            axis equal;
+        end
+        
     end
 end
