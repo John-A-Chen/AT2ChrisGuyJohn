@@ -6,10 +6,14 @@ classdef A2 < handle
         q_ur3e;
         titan;
         q_titan;
+        x1;
+        x2;
         stopped = false;
         a;
         s = gobjects(1,13);
         b = gobjects(1,4);
+        path = gobjects(1,100);
+
     end
 
     methods
@@ -28,12 +32,14 @@ classdef A2 < handle
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
             self.q_ur3e = zeros(1,6);
             self.titan = KukaTitan(transl(0, 0, 0.05));
-            self.q_titan = zeros(1,6);
+            self.q_titan = zeros(1,7);
+            self.x1 = zeros(3,1);
+            self.x2 = zeros(3,1);
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
             self.startUI();
-            self.elipsoidOnRobotUR3e(3,1,1,0.2);
+            % self.elipsoidOnRobotUR3e(3,1,1,0.2);
         end
 
         function setupEnvironment(self)
@@ -57,6 +63,8 @@ classdef A2 < handle
                 'Position', [100 200 100 40],'Callback', @self.freeControl);
             self.b(2) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [100 150 100 40],'Callback', @self.sequence);
+            self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
+                'Position', [100 100 100 40],'Callback', @self.pathPlacement);
         end
 
         function freeControl(self, source, ~)
@@ -105,7 +113,7 @@ classdef A2 < handle
                 'Position', [1200 20 300 20], 'String', 'uq6', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
             self.s(13) = uicontrol(sliderProperties, ...
-                'Position', [1200 20 1 1], 'String', 'uq7', ...
+                'Position', [1200 10 300 20], 'String', 'uq7', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
 
             self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
@@ -127,9 +135,123 @@ classdef A2 < handle
             self.b(2) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [110 200 100 50],'Callback', @self.freeControl);
 
-            % self.DLS();
-            self.DLS2();
+            self.DLS();
+            % self.DLS2();
         end
+
+        function pathPlacement(self, source, ~)
+            self.stopped = false;
+            delete(source);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
+
+            sliderProperties = struct('Style', 'slider', 'Value', 0, ...
+                'SliderStep', [0.01 0.1], 'Callback', @self.updatePath);
+            self.s(1) = uicontrol(sliderProperties, ...
+                'Position', [10 120 300 20], 'String', 'x1', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x1(1));
+            self.s(2) = uicontrol(sliderProperties, ...
+                'Position', [10 100 300 20], 'String', 'y1', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x1(2));
+            self.s(3) = uicontrol(sliderProperties, ...
+                'Position', [10 80 300 20], 'String', 'z1', ...
+                'Min', 0 ,  'Max', 3, "Value", self.x1(3));
+
+            self.s(7) = uicontrol(sliderProperties, ...
+                'Position', [1200 120 300 20], 'String', 'x2', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x2(1));
+            self.s(8) = uicontrol(sliderProperties, ...
+                'Position', [1200 100 300 20], 'String', 'y2', ...
+                'Min', -3 ,  'Max', 3, "Value", self.x2(2));
+            self.s(9) = uicontrol(sliderProperties, ...
+                'Position', [1200 80 300 20], 'String', 'z2', ...
+                'Min', 0 ,  'Max', 3, "Value", self.x2(3));
+
+            self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+
+            self.b(2) = uicontrol('Style','pushbutton','String','Play', ...
+                'Position', [110 200 100 50],'Callback', @self.play);
+
+            for i = 1:100
+                t = i * 0.01;
+                x = self.x1(1) * (1 - t) + self.x2(1) * t;
+                y = self.x1(2) * (1 - t) + self.x2(2) * t;
+                z = self.x1(3) * (1 - t) + self.x2(3) * t;
+                self.path(i) = plot3(x,y,z,'r*');
+            end
+        end
+
+        
+
+
+        function play(self, source, ~)
+            self.stopped = false;
+            delete(source);
+            delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
+                self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
+                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
+
+            self.b(3) = uicontrol('Style','pushbutton','String','eStop', ...
+                'Position', [110 150 100 50],'Callback', @self.eStop);
+
+            t = 10;                                                         % Total time in seconds
+            steps = 100;                                                    % No. of steps
+            deltaT = t/steps;                                               % Discrete time step
+            qMatrix = zeros(steps,6);                                      % Assign memory for joint angles
+            x = zeros(3,steps);                                             % Assign memory for trajectory
+            m = zeros(1,steps);                                             % For recording measure of manipulability
+            errorValue = zeros(3,steps);                                    % For recording velocity error
+            lambda = 0;
+            lambdaMax = 0.05;
+            epsilon = 0.5;
+
+            for i = 1:steps
+                x(1,i) = self.path(i).XData;
+                x(2,i) = self.path(i).YData;
+                x(3,i) = self.path(i).ZData;
+                % q = self.titan.model.ikcon(transl(x,y,z));
+                % self.titan.model.animate(q);
+                % drawnow;
+            end
+
+            qMatrix(1,:) = self.titan.model.ikcon(transl(x(:,1)'));
+            self.titan.model.animate(qMatrix(1,:));
+            drawnow
+
+            for i = 1:steps-1
+                T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
+                xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
+                J = self.titan.model.jacob0(qMatrix(i,:));                  % Get Jacobian at current state (use jacob0)
+                J = J(1:3,:);                                               % Take only first 3 rows
+                m(:,i) = sqrt(det(J*J'));                                   % Measure of Manipulability
+                if m(:,i) > epsilon
+                    lambda = 0;
+                else
+                    lambda = (1 - (m(:,i)/epsilon)^2) * lambdaMax;
+                end
+                qdot = J'*inv(J*J' + lambda * eye(3))*xdot;                 % Solve the RMRC equation
+                errorValue(:,i) = xdot - J*qdot;                            % Velocity error
+                qMatrix(i+1,:)= qMatrix(i,:) + (qdot)';                     % Update the joint state
+                self.titan.model.animate(qMatrix(i+1,:));
+                drawnow
+                self.q_titan = qMatrix(i+1,:);
+                if self.stopped
+                    break
+                end
+                % if readDigitalPin(self.a, "D23")
+                %     break
+                % end
+            end
+
+            if ~self.stopped
+                delete(self.b(3));
+                self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
+                    'Position', [110 150 100 50],'Callback', @self.eStop);
+            end
+        end
+
         function DLS2(self)
             t = 10;                                                         % Total time in seconds
             steps = 200;                                                    % No. of steps
@@ -153,25 +275,7 @@ classdef A2 < handle
             qMatrix(1,:) = self.ur3e.model.ikcon(transl(x(:,1)));
             self.ur3e.model.animate(qMatrix1(1,:));
 
-            self.s(1) = uicontrol(sliderProperties, ...
-                'Position', [10 120 300 20], 'String', 'x1', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x1(1));
-            self.s(2) = uicontrol(sliderProperties, ...
-                'Position', [10 100 300 20], 'String', 'y1', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x1(2));
-            self.s(3) = uicontrol(sliderProperties, ...
-                'Position', [10 80 300 20], 'String', 'z1', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x1(3));
-
-            self.s(7) = uicontrol(sliderProperties, ...
-                'Position', [1200 120 300 20], 'String', 'x2', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x2(1));
-            self.s(8) = uicontrol(sliderProperties, ...
-                'Position', [1200 100 300 20], 'String', 'y2', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x2(2));
-            self.s(9) = uicontrol(sliderProperties, ...
-                'Position', [1200 80 300 20], 'String', 'z2', ...
-                'Min', -3 ,  'Max', 3, "Value", self.x2(3));
+            
             for i = 1:steps-1
                 T = self.ur3e.model.fkine(qMatrix1(i,:)).T;                 % End-effector transform at current joint state
                 xdot = (x(:,i+1)-T(1:3,4));                                 % Velocity to reach next waypoint
@@ -192,12 +296,13 @@ classdef A2 < handle
                 if self.stopped
                     break
                 end
-                % if readDigitalPin(self.a, "D23")
-                %     eStop()
-                %     break
-                % end
+                if readDigitalPin(self.a, "D23")
+                    break
+                end
             end
+
         end
+
         function DLS(self)
             t = 10;                                                         % Total time in seconds
             steps = 200;                                                    % No. of steps
@@ -302,8 +407,16 @@ classdef A2 < handle
                         self.x2(3) = sliderValue1;
                 end
             end
-            disp(self.x1);
-            disp(self.x2);
+            for i = 1:100
+                delete(self.path(i));
+                t = i * 0.01;
+                x = self.x1(1) * (1 - t) + self.x2(1) * t;
+                y = self.x1(2) * (1 - t) + self.x2(2) * t;
+                z = self.x1(3) * (1 - t) + self.x2(3) * t;
+                self.path(i) = plot3(x,y,z,'r*');
+            end
+            % path(1) = plot3(self.x1(1), self.x1(2), self.x1(3), 'r*');
+            % path(100) = plot3(self.x2(1), self.x2(2), self.x2(3), 'r*');
         end
 
         function eStop(self, source, ~)
@@ -313,12 +426,18 @@ classdef A2 < handle
             delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
                 self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
                 self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
+            for i = 1:100
+                delete(self.path(i));
+            end
 
             self.b(1) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [100 150 100 50],'Callback', @self.freeControl);
             self.b(2) = uicontrol('Style','pushbutton','String','Sequence', ...
                 'Position', [100 200 100 50],'Callback', @self.sequence);
+            self.b(3) = uicontrol('Style','pushbutton','String','Path Placement', ...
+                'Position', [100 100 100 40],'Callback', @self.pathPlacement);
         end
+        
         function defineObstacle(self, obsX, obsY, obsZ, a)
             %% make the cube
             % [Y,Z] = meshgrid(-0.5:0.05:0.5,-0.5:0.05:0.5);
