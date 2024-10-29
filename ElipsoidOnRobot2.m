@@ -50,12 +50,12 @@ radii = [
 ];
 
 % Loop through each link to create and attach ellipsoids
-for i = 1:6
-    [X, Y, Z] = ellipsoid(centerPoints(i,1), centerPoints(i,2), centerPoints(i,3), radii(i,1), radii(i,2), radii(i,3), 6); % Create the ellipsoid for the current link
-    robot.model.points{i} = [X(:),Y(:),Z(:)]; % defines points for elipsoid triangulation (comment out to encapsulate links with a bug)
-    robot.model.faces{i} = delaunay(robot.model.points{i}); % creates elipsoid faces
-    hold on;
-end
+% for i = 2:6
+%     [X, Y, Z] = ellipsoid(centerPoints(i,1), centerPoints(i,2), centerPoints(i,3), radii(i,1), radii(i,2), radii(i,3), 6); % Create the ellipsoid for the current link
+%     robot.model.points{i} = [X(:),Y(:),Z(:)]; % defines points for elipsoid triangulation (comment out to encapsulate links with a bug)
+%     robot.model.faces{i} = delaunay(robot.model.points{i}); % creates elipsoid faces
+%     hold on;
+% end
 
 
 % Plot the robot
@@ -76,12 +76,12 @@ for i = 1 : robot.model.n
     tr(:,:,i+1) = tr(:,:,i) * trotz(q(i)) * transl(0,0,L(i).d) * transl(L(i).a,0,0) * trotx(L(i).alpha);
 end
 
-for i = 1: size(tr,3)
+for i = 2: 6
     cubePointsAndOnes = [inv(tr(:,:,i)) * [cubePoints,ones(size(cubePoints,1),1)]']';
     updatedCubePoints = cubePointsAndOnes(:,1:3);
     algebraicDist = GetAlgebraicDist(updatedCubePoints, centerPoints(i,:), radii(i, :));
     pointsInside = find(algebraicDist < 1);
-    disp(['2.10: There are ', num2str(size(pointsInside,1)),' points inside the ',num2str(i),'th ellipsoid']);
+    disp(['There are ', num2str(size(pointsInside,1)),' points inside joint ',num2str(i),' ellipsoid']);
 end
 
 
