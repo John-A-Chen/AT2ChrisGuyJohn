@@ -281,10 +281,10 @@ classdef A230 < handle
         %     delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
         %         self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
         %         self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
-        % 
+        %
         %     self.b(3) = uicontrol('Style','pushbutton','String','eStop', ...
         %         'Position', [110 150 100 50],'Callback', @self.eStop);
-        % 
+        %
         %     t = 10;                                                         % Total time in seconds
         %     steps = 100;                                                    % No. of steps
         %     deltaT = t/steps;                                               % Discrete time step
@@ -295,7 +295,7 @@ classdef A230 < handle
         %     lambda = 0;
         %     lambdaMax = 0.05;
         %     epsilon = 0.5;
-        % 
+        %
         %     for i = 1:steps
         %         x(1,i) = self.path(i).XData;
         %         x(2,i) = self.path(i).YData;
@@ -308,7 +308,7 @@ classdef A230 < handle
         %     qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'), [0,0,0.5,0,0,0]);
         %     self.titan.model.animate(qMatrix(i,:));
         %     drawnow
-        % 
+        %
         %     % for i = 1:steps-1
         %     while i <= 99
         %         T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
@@ -330,16 +330,16 @@ classdef A230 < handle
         %         if self.stopped
         %             self.iCurrent = i;
         %             break
-        % 
+        %
         %         end
         %         i = i + 1;
         %         % if readDigitalPin(self.a, "D23")
         %         %     break
         %         % end
         %     end
-        % 
-        % 
-        % 
+        %
+        %
+        %
         %     if ~self.stopped
         %         self.iCurrent = 1;
         %         delete(self.b(3));
@@ -479,24 +479,31 @@ classdef A230 < handle
             end
             % Kuka movement with RMRC
             s2 = lspb(0,1,self.steps);                                                        % Trapezoidal trajectory scalar
-            for i=1:self.steps
-                self.x_2(1,i) = 2;                                                            % Points in x (fixed)
-                self.x_2(2,i) = (1-s2(i))*1.25 + s2(i)*3.25;                                 % Points in y (move forward)
-                self.x_2(3,i) = 1.5;                                                          % Points in z (fixed)
-                theta2(1,i) = 0;                                                        % Roll angle
-                theta2(2,i) = 5*pi/9;                                                   % Pitch angle
-                theta2(3,i) = 0;                                                        % Yaw angle
-            end
-            for i=1:self.steps
-                self.x_2(1,self.steps+i) = 2;                                                      % Points in x (fixed)
-                self.x_2(2,self.steps+i) = (1-s2(i))*3.25 + s2(i)*1.25;                           % Points in y (move backward)
-                self.x_2(3,self.steps+i) = 1.5;                                                    % Points in z (fixed)
-                theta2(1,self.steps+i) = 0;                                                  % Roll angle
-                theta2(2,self.steps+i) = 5*pi/9;                                             % Pitch angle
-                theta2(3,self.steps+i) = 0;                                                  % Yaw angle
+            for i = 1:self.steps
+                % First segment
+                self.x2(:, i) = [(1 - s2(i)) * 1.0 + s2(i) * 2;
+                    (1 - s2(i)) * 3 + s2(i) * 2;
+                    (1 - s2(i)) * 1.3 + s2(i) * 1.75];
+                theta2(:, i) = [0; 5 * pi / 9; 0];
             end
 
-            T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1)) self.x_2(:,1); zeros(1,3) 1];    % Transformation of first point
+            for i = 1:self.steps
+                % Second segment
+                self.x2(:, self.steps + i) = [(1 - s2(i)) * 2 + s2(i) * -0.375;
+                    (1 - s2(i)) * 2 + s2(i) * 2;
+                    (1 - s2(i)) * 1.75 + s2(i) * 0.9];
+                theta2(:, self.steps + i) = [0; 5 * pi / 9; 0];
+            end
+
+            for i = 1:self.steps
+                % Third segment
+                self.x2(:, 2 * self.steps + i) = [(1 - s2(i)) * -0.375 + s2(i) * 1.4;
+                    2;
+                    (1 - s2(i)) * 0.9 + s2(i) * 1.3];
+                theta2(:, 2 * self.steps + i) = [0; 5 * pi / 9; 0];
+            end
+
+            T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1)) self.x2(:,1); zeros(1,3) 1];    % Transformation of first point
             q1 = zeros(1,6);                                                            % Initial guess for joint angles
             qMatrix2(1,:) = self.titan.model.ikcon(T2,q1);                                   % Solve joint angles to achieve first waypoint
 

@@ -12,6 +12,7 @@ classdef A2 < handle
         a;
         s = gobjects(1,13);
         b = gobjects(1,4);
+        t = gobjects(1,12);
         path = gobjects(1,100);
 
         steps;
@@ -20,8 +21,10 @@ classdef A2 < handle
         deltaT;
         iCurrent;
 
-        c = [3; 2; 1];
-        r = [0.4; 0.4; 0.4];
+        c;
+        r;
+
+        trVertices;
 
     end
 
@@ -39,8 +42,8 @@ classdef A2 < handle
             zlim([0, self.S]);
             % self.a = arduino;
             self.ur3e = UR3e(transl(2.5, 1.75, 0.925));
-            self.q_ur3e = zeros(1,6);
-            self.titan = KukaTitan(transl(0, 0, 0.05));
+            self.q_ur3e = zeros(1,7);
+            self.titan = KukaTitan(transl(-0.75,0.5,0.05));
             self.q_titan = zeros(1,6);
             self.x1 = zeros(3,1);
             self.x2 = zeros(3,1);
@@ -49,6 +52,9 @@ classdef A2 < handle
             self.epsilon = 0.1;
             self.deltaT = 0.02;
             self.iCurrent = 1;
+
+            self.c = [2.5; 1.5; 1];
+            self.r = [0.6; 0.6; 0.6];
             self.setupEnvironment();
             elapsedTime = toc(self.totalTime);
             disp(['Total elapsed time: ', num2str(elapsedTime), ' seconds']);
@@ -68,6 +74,7 @@ classdef A2 < handle
                 'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
             PlaceObject('environment.PLY',[0,0,0]);
             light("Style","local","Position",[-10 -10 3]);
+            % ellipsoid(self.c(1),self.c(2),self.c(3),self.r(1),self.r(2),self.r(3));
         end
 
         function startUI(self, ~)
@@ -91,51 +98,78 @@ classdef A2 < handle
                 self.s(9); self.s(10); self.s(11); self.s(12)]);
             sliderProperties = struct('Style', 'slider', 'Value', 0, ...
                 'SliderStep', [0.01 0.1], 'Callback', @self.updateJoints);
+
+            % Text labels for Titan joints
+            self.t(1) = uicontrol('Style', 'text', 'Position', [320 120 50 20], 'String', 'Joint 1');
             self.s(1) = uicontrol(sliderProperties, ...
                 'Position', [10 120 300 20], 'String', 'tq1', ...
                 'Min', -150 ,  'Max', 150, "Value", self.q_titan(1) * 180/pi);
+
+            self.t(2) = uicontrol('Style', 'text', 'Position', [320 100 50 20], 'String', 'Joint 2');
             self.s(2) = uicontrol(sliderProperties, ...
                 'Position', [10 100 300 20], 'String', 'tq2', ...
                 'Min', -40 ,  'Max', 107.5, "Value", self.q_titan(2) * 180/pi);
+
+            self.t(3) = uicontrol('Style', 'text', 'Position', [320 80 50 20], 'String', 'Joint 3');
             self.s(3) = uicontrol(sliderProperties, ...
                 'Position', [10 80 300 20], 'String', 'tq3', ...
                 'Min', -200 ,  'Max', 55, "Value", self.q_titan(3) * 180/pi);
+
+            self.t(4) = uicontrol('Style', 'text', 'Position', [320 60 50 20], 'String', 'Joint 4');
             self.s(4) = uicontrol(sliderProperties, ...
                 'Position', [10 60 300 20], 'String', 'tq4', ...
                 'Min', -350,'Max', 350, "Value", self.q_titan(4) * 180/pi);
+
+            self.t(5) = uicontrol('Style', 'text', 'Position', [320 40 50 20], 'String', 'Joint 5');
             self.s(5) = uicontrol(sliderProperties, ...
                 'Position', [10 40 300 20], 'String', 'tq5', ...
                 'Min', -118,'Max', 118, "Value", self.q_titan(5) * 180/pi);
+
+            self.t(6) = uicontrol('Style', 'text', 'Position', [320 20 50 20], 'String', 'Joint 6');
             self.s(6) = uicontrol(sliderProperties, ...
                 'Position', [10 20 300 20], 'String', 'tq6', ...
                 'Min', -350,'Max', 350, "Value", self.q_titan(6) * 180/pi);
 
+            % Text labels for UR3e joints
+            self.t(7) = uicontrol('Style', 'text', 'Position', [1150 120 50 20], 'String', 'Joint 1');
             self.s(7) = uicontrol(sliderProperties, ...
                 'Position', [1200 120 300 20], 'String', 'uq1', ...
                 'Min', -360 ,  'Max', 360, "Value", self.q_ur3e(1) * 180/pi);
+
+            self.t(8) = uicontrol('Style', 'text', 'Position', [1150 100 50 20], 'String', 'Joint 2');
             self.s(8) = uicontrol(sliderProperties, ...
                 'Position', [1200 100 300 20], 'String', 'uq2', ...
                 'Min', -90 ,  'Max', 90, "Value", self.q_ur3e(2) * 180/pi);
+
+            self.t(9) = uicontrol('Style', 'text', 'Position', [1150 80 50 20], 'String', 'Joint 3');
             self.s(9) = uicontrol(sliderProperties, ...
                 'Position', [1200 80 300 20], 'String', 'uq3', ...
                 'Min', -170 ,  'Max', 170, "Value", self.q_ur3e(3) * 180/pi);
+
+            self.t(10) = uicontrol('Style', 'text', 'Position', [1150 60 50 20], 'String', 'Joint 4');
             self.s(10) = uicontrol(sliderProperties, ...
                 'Position', [1200 60 300 20], 'String', 'uq4', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(4) * 180/pi);
+
+            self.t(11) = uicontrol('Style', 'text', 'Position', [1150 40 50 20], 'String', 'Joint 5');
             self.s(11) = uicontrol(sliderProperties, ...
                 'Position', [1200 40 300 20], 'String', 'uq5', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(5) * 180/pi);
+
+            self.t(12) = uicontrol('Style', 'text', 'Position', [1150 20 50 20], 'String', 'Joint 6');
             self.s(12) = uicontrol(sliderProperties, ...
                 'Position', [1200 20 300 20], 'String', 'uq6', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
-            self.s(13) = uicontrol(sliderProperties, ...
-                'Position', [1200 10 300 20], 'String', 'uq7', ...
-                'Min', -360,'Max', 360, "Value", self.q_ur3e(6) * 180/pi);
 
+            self.s(13) = uicontrol(sliderProperties, ...
+                'Position', [1700 10 300 20], 'String', 'uq7', ...
+                'Min', -360,'Max', 360, "Value", self.q_ur3e(7) * 180/pi);
+
+            % Buttons
             self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
             self.b(4) = uicontrol('Style','pushbutton','String','Sequence', ...
-                'Position', [110 200 100 50],'Callback', @self.sequence);
+                'Position', [110 210 100 50],'Callback', @self.sequence);
         end
 
         function sequence(self, source, ~)
@@ -143,7 +177,10 @@ classdef A2 < handle
             delete(source);
             delete([self.b(1); self.b(2); self.b(3); self.b(4); self.s(1); self.s(2); ...
                 self.s(3); self.s(4); self.s(5); self.s(6); self.s(7); self.s(8); ...
-                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13)]);
+                self.s(9); self.s(10); self.s(11); self.s(12); self.s(13); ...
+                self.t(1); self.t(2); self.t(3); self.t(4); self.t(5); self.t(6); ...
+                self.t(7); self.t(8); self.t(9); self.t(10); self.t(11); self.t(12)]);
+
 
             self.b(3) = uicontrol('Style','pushbutton','String','E-Stop', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
@@ -154,7 +191,8 @@ classdef A2 < handle
             % self.DLS();
             % self.DLS2();
             % self.rmrc5();
-            self.welding();
+            % self.welding();
+            self.jTRAJICwelding();
         end
 
         function pathPlacement(self, source, ~)
@@ -198,9 +236,9 @@ classdef A2 < handle
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
                 v = [x; y; z];
-                d = (v-self.c)*diag(self.r.^-2)*(v-self.c);
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
                 if d < 1
-                    v = self.c + (v-self.c) * 
+                    v = self.c + (v-self.c) * d^-0.5;
                 end
                 self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
@@ -215,7 +253,7 @@ classdef A2 < handle
 
             self.b(3) = uicontrol('Style','pushbutton','String','eStop', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
-            
+
             id = 1; % Note: may need to be changed if multiple joysticks present
             joy = vrjoystick(id);
             caps(joy) % display joystick information
@@ -295,10 +333,10 @@ classdef A2 < handle
                 % drawnow;
             end
             i = self.iCurrent;
-            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'));
+            qMatrix(i,:) = self.titan.model.ikcon(transl(x(:,i)'), [0,0,0.5,0,0,0]);
             self.titan.model.animate(qMatrix(i,:));
             drawnow
-            
+
             % for i = 1:steps-1
             while i <= 99
                 T = self.titan.model.fkine(qMatrix(i,:)).T;                 % End-effector transform at current joint state
@@ -320,7 +358,7 @@ classdef A2 < handle
                 if self.stopped
                     self.iCurrent = i;
                     break
-                    
+
                 end
                 i = i + 1;
                 % if readDigitalPin(self.a, "D23")
@@ -328,7 +366,7 @@ classdef A2 < handle
                 % end
             end
 
-            
+
 
             if ~self.stopped
                 self.iCurrent = 1;
@@ -338,8 +376,72 @@ classdef A2 < handle
             end
         end
 
-        function welding(self)
+        function jTRAJICwelding(self)
+            startPositions = ...
+                [-1.0, 3.5, 1.3;
+                -1.4, 3.5, 1.3;
+                -1.8, 3.5, 1.3];
 
+            weldPosition = ...
+                [2, 2, 1.75;
+                2, 2, 1.75;
+                2, 2, 1.75];
+
+            endPositions = ...
+                [-0.375, 2, 0.9;
+                0.0, 2, 0.9;
+                0.375, 2, 0.9];
+
+            hflange = cell(1, size(startPositions, 1));
+            for i = 1:size(startPositions, 1)
+                hflange{i} = PlaceObject('flange.ply', startPositions(i, :));
+            end
+
+            flangeOrigin = PlaceObject('flange0.ply', [0, 0, 0]);
+            vertices = get(flangeOrigin, 'Vertices');
+            delete(flangeOrigin);
+
+            numSteps = 50;
+
+            for i = 1:size(startPositions, 1)
+                whereRobot = self.titan.model.getpos();
+                startTransform = transl(startPositions(i, :)) * trotx(pi);
+                startJointAngles = self.titan.model.ikcon(startTransform);
+                qmatrix = jtraj(whereRobot, startJointAngles, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qmatrix(step, :));
+                    pause(0.05);
+                end
+
+                tWeld = eye(4) * transl(weldPosition(i, :)) * trotx(pi);
+                qWeld = self.titan.model.ikcon(tWeld);
+                qWeldMatrix = jtraj(startJointAngles, qWeld, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qWeldMatrix(step, :));
+                    set(hflange{i}, 'Vertices', self.trVertices(:, 1:3));
+                    drawnow
+                    pause(0.05);
+                end
+
+                pause(5);
+                tEnd = eye(4) * transl(endPositions(i, :)) * trotx(pi);
+                qEnd = self.titan.model.ikcon(tEnd);
+                qEndMatrix = jtraj(qWeld, qEnd, numSteps);
+
+                for step = 1:numSteps
+                    self.titan.model.animate(qEndMatrix(step, :));
+                    whereEndEffector = self.titan.model.fkine(qEndMatrix(step, :));
+                    self.trVertices = [vertices, ones(size(vertices, 1), 1)] * whereEndEffector.T';
+
+                    set(hflange{i}, 'Vertices',self.trVertices(:, 1:3));
+                    drawnow();
+                    pause(0.05);
+                end
+                delete(hflange{i});
+                PlaceObject('flange.ply', endPositions(i, :));
+            end
         end
 
         function rmrc5(self)
@@ -460,7 +562,6 @@ classdef A2 < handle
             end
         end
 
-
         function updateJoints(self, source, ~)                              % issue here is that source changes the number
             sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
             sliderValue2 = get(source, 'Value');
@@ -517,8 +618,12 @@ classdef A2 < handle
                 x = self.x1(1) * (1 - t) + self.x2(1) * t;
                 y = self.x1(2) * (1 - t) + self.x2(2) * t;
                 z = self.x1(3) * (1 - t) + self.x2(3) * t;
-                
-                self.path(i) = plot3(x,y,z,'r*');
+                v = [x; y; z];
+                d = (v-self.c)'*diag(self.r.^-2)*(v-self.c);
+                if d < 1
+                    v = self.c + (v-self.c) * d^-0.5;
+                end
+                self.path(i) = plot3(v(1),v(2),v(3),'r*');
             end
             % path(1) = plot3(self.x1(1), self.x1(2), self.x1(3), 'r*');
             % path(100) = plot3(self.x2(1), self.x2(2), self.x2(3), 'r*');
@@ -544,7 +649,7 @@ classdef A2 < handle
             self.b(4) = uicontrol('Style','pushbutton','String','Controller', ...
                 'Position', [100 50 100 40],'Callback', @self.controller);
         end
-        
+
         function defineObstacle(self, obsX, obsY, obsZ, a)
             %% make the cube
             % [Y,Z] = meshgrid(-0.5:0.05:0.5,-0.5:0.05:0.5);
@@ -564,13 +669,13 @@ classdef A2 < handle
             cube_h = plot3(cubePoints(:,1),cubePoints(:,2),cubePoints(:,3),'b.');
             set(cube_h, 'Visible', 'off');
         end
-        
+
         function algebraicDist = GetAlgebraicDist(points, centerPoint, radii)
             algebraicDist = ((points(:,1)-centerPoint(1))/radii(1)).^2 ...
                 + ((points(:,2)-centerPoint(2))/radii(2)).^2 ...
                 + ((points(:,3)-centerPoint(3))/radii(3)).^2;
         end
-        
+
         function elipsoidOnRobotUR3e(self, obsX, obsY, obsZ, a)
             [Y,Z] = meshgrid(-a:0.01:a,-a:0.01:a);
             sizeMat = size(Y);
