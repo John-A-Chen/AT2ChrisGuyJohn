@@ -101,7 +101,6 @@ classdef A2 < handle
             sliderProperties = struct('Style', 'slider', 'Value', 0, ...
                 'SliderStep', [0.01 0.1], 'Callback', @self.updateJoints);
 
-            % Text labels for Titan joints
             self.t(1) = uicontrol('Style', 'text', 'Position', [320 120 50 20], 'String', 'Joint 1');
             self.s(1) = uicontrol(sliderProperties, ...
                 'Position', [10 120 300 20], 'String', 'tq1', ...
@@ -132,7 +131,6 @@ classdef A2 < handle
                 'Position', [10 20 300 20], 'String', 'tq6', ...
                 'Min', -350,'Max', 350, "Value", self.q_titan(6) * 180/pi);
 
-            % Text labels for UR3e joints
             self.t(7) = uicontrol('Style', 'text', 'Position', [1150 120 50 20], 'String', 'Joint 1');
             self.s(7) = uicontrol(sliderProperties, ...
                 'Position', [1200 120 300 20], 'String', 'uq1', ...
@@ -167,7 +165,6 @@ classdef A2 < handle
                 'Position', [1700 10 300 20], 'String', 'uq7', ...
                 'Min', -360,'Max', 360, "Value", self.q_ur3e(7) * 180/pi);
 
-            % Buttons
             self.b(3) = uicontrol('Style','pushbutton','String','Back', ...
                 'Position', [110 150 100 50],'Callback', @self.eStop);
             self.b(4) = uicontrol('Style','pushbutton','String','Sequence', ...
@@ -189,10 +186,7 @@ classdef A2 < handle
             self.b(2) = uicontrol('Style','pushbutton','String','Free Control', ...
                 'Position', [110 200 100 50],'Callback', @self.freeControl);
 
-            % self.DLS();
-            % self.DLS2();
-            self.rmrc5();
-            % self.welding();
+            self.RMRCwelding();
             % self.jTRAJICwelding();
         end
 
@@ -451,62 +445,63 @@ classdef A2 < handle
             end
         end
 
-        function rmrc5(self)
-            t1 = 1;                                                                      % Total time for one direction (s)
-            deltaT1 = 0.02;                                                              % Control frequency
-            steps1 = t1/deltaT1;                                                           % Number of steps for one direction
-            total_steps1 = 2*steps1;                                                      % Total steps for forward and backward
+        function RMRCwelding(self)
+            t1 = 1;                                                         % Total time for one direction (s)
+            deltaT1 = 0.02;                                                 % Control frequency
+            steps1 = t1/deltaT1;                                            % Number of steps for one direction
+            total_steps1 = 2*steps1;                                        % Total steps for forward and backward
             S1 = 5;
-            delta1 = 2*pi/steps1;                                                         % Small angle change
-            epsilon1 = 0.1;                                                              % Threshold for manipulability/Damped Least Squares
-            W1 = diag([1 1 1 0.1 0.1 0.1]);                                              % Weighting matrix for the velocity vector
+            delta1 = 2*pi/steps1;                                           % Small angle change
+            epsilon1 = 0.1;                                                 % Threshold for manipulability/Damped Least Squares
+            W1 = diag([1 1 1 0.1 0.1 0.1]);                                 % Weighting matrix for the velocity vector
 
             % Allocate array data
-            qMatrix = zeros(total_steps1,7);                                             % Array for UR3e joint angles
-            qMatrix2 = zeros(total_steps1,6);                                            % Array for Kuka Titan joint angles
-            qdot = zeros(total_steps1,7);                                                % Array for UR3e joint velocities
+            qMatrix = zeros(total_steps1,7);                                % Array for UR3e joint angles
+            qMatrix2 = zeros(total_steps1,6);                               % Array for Kuka Titan joint angles
+            qdot = zeros(total_steps1,7);                                   % Array for UR3e joint velocities
             qdot2 = zeros(total_steps1,6);
-            theta = zeros(3,total_steps1);                                               % Array for UR3e roll-pitch-yaw angles
-            theta2 = zeros(3,total_steps1);                                              % Array for Kuka Titan roll-pitch-yaw angles
-            x = zeros(3,total_steps1);                                                   % Array for UR3e x-y-z trajectory
-            x2 = zeros(3,total_steps1);                                                  % Array for Kuka Titan x-y-z trajectory
+            theta = zeros(3,total_steps1);                                  % Array for UR3e roll-pitch-yaw angles
+            theta2 = zeros(3,total_steps1);                                 % Array for Kuka Titan roll-pitch-yaw angles
+            x = zeros(3,total_steps1);                                      % Array for UR3e x-y-z trajectory
+            x2 = zeros(3,total_steps1);                                     % Array for Kuka Titan x-y-z trajectory
 
             % UR3e movement with RMRC (Circular Trajectory)
-            radius = 0.15;                  % Radius of the circle
-            center = [2; 2; 1.75];        % Center of the circle in (x, y, z) coordinates, 0.5m away in Z
-            theta(1,:) = 0;              % Roll angle (fixed)
-            theta(2,:) = 5*pi/9;           % Pitch angle (fixed)
-            theta(3,:) = pi;              % Yaw angle (fixed)
+            radius = 0.15;                                                  % Radius of the circle
+            center = [2; 2; 1.75];                                          % Center of the circle in (x, y, z) coordinates, 0.5m away in Z
+            theta(1,:) = 0;                                                 % Roll angle (fixed)
+            theta(2,:) = 5*pi/9;                                            % Pitch angle (fixed)
+            theta(3,:) = pi;                                                % Yaw angle (fixed)
 
-            s1 = lspb(0, 4*pi, steps1); % Define angular positions over time for one full circle
+            s1 = lspb(0, 4*pi, steps1);                                     % Define angular positions over time for one full circle
             for i = 1:steps1
-                x(1,i) = center(1) + radius * cos(s1(i)); % x-coordinate for circular path
-                x(2,i) = center(2);                        % y-coordinate (fixed at center)
-                x(3,i) = center(3) + radius * sin(s1(i)); % z-coordinate for circular path
+                x(1,i) = center(1) + radius * cos(s1(i));                   % x-coordinate for circular path
+                x(2,i) = center(2);                                         % y-coordinate (fixed at center)
+                x(3,i) = center(3) + radius * sin(s1(i));                   % z-coordinate for circular path
             end
 
             % Concatenate to complete the circular trajectory by mirroring in reverse
-            x = [x, x(:, end:-1:1)];  % Extend trajectory to move forward and then reverse
+            x = [x, x(:, end:-1:1)];                                        % Extend trajectory to move forward and then reverse
 
-            T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1); zeros(1,3) 1];  % Initial transformation
-            q0 = zeros(1, 7); % Initial guess for joint angles
-            qMatrix(1, :) = self.ur3e.model.ikcon(T, q0); % Solve joint angles for first waypoint
+            T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) ...
+                x(:,1); zeros(1,3) 1];                                      % Initial transformation
+            q0 = zeros(1, 7);                                               % Initial guess for joint angles
+            qMatrix(1, :) = self.ur3e.model.ikcon(T, q0);                   % Solve joint angles for first waypoint
 
             % Check size of x to confirm number of trajectory points
-            disp(size(x)); % Display size of x for debugging
+            disp(size(x));                                                  % Display size of x for debugging
 
             % RMRC loop for UR3e following the circular trajectory
             for i = 1:steps1 - 1
-                T = self.ur3e.model.fkine(qMatrix(i,:)).T;                                   % Get forward transformation at current joint state
-                deltaX = x(:,i+1) - T(1:3,4);                                           % Position error from next waypoint
-                Rd = rpy2r(theta(1,i+1),theta(2,i+1),theta(3,i+1));                     % Desired rotation matrix
-                Ra = T(1:3,1:3);                                                        % Current end-effector rotation matrix
-                Rdot = (1/deltaT1)*(Rd - Ra);                                            % Rotation matrix error
-                S1 = Rdot*Ra';                                                           % Skew symmetric matrix
+                T = self.ur3e.model.fkine(qMatrix(i,:)).T;                  % Get forward transformation at current joint state
+                deltaX = x(:,i+1) - T(1:3,4);                               % Position error from next waypoint
+                Rd = rpy2r(theta(1,i+1),theta(2,i+1),theta(3,i+1));         % Desired rotation matrix
+                Ra = T(1:3,1:3);                                            % Current end-effector rotation matrix
+                Rdot = (1/deltaT1)*(Rd - Ra);                               % Rotation matrix error
+                S1 = Rdot*Ra';                                              % Skew symmetric matrix
                 linear_velocity = (1/deltaT1)*deltaX;
-                angular_velocity = [S1(3,2); S1(1,3); S1(2,1)];                            % Angular velocity
-                xdot = W1*[linear_velocity; angular_velocity];                           % End-effector velocity
-                J = self.ur3e.model.jacob0(qMatrix(i,:));                                    % Jacobian at current state
+                angular_velocity = [S1(3,2); S1(1,3); S1(2,1)];             % Angular velocity
+                xdot = W1*[linear_velocity; angular_velocity];              % End-effector velocity
+                J = self.ur3e.model.jacob0(qMatrix(i,:));                   % Jacobian at current state
 
                 % Damped Least Squares (DLS) for low manipulability
                 m = sqrt(det(J*J'));
@@ -515,12 +510,13 @@ classdef A2 < handle
                 else
                     lambda = 0;
                 end
-                invJ = inv(J'*J + lambda *eye(7))*J';                                   % DLS inverse Jacobian
-                qdot(i,:) = (invJ*xdot)';                                               % Joint velocities
+                invJ = inv(J'*J + lambda *eye(7))*J';                       % DLS inverse Jacobian
+                qdot(i,:) = (invJ*xdot)';                                   % Joint velocities
                 qMatrix(i+1,:) = qMatrix(i,:) + deltaT1*qdot(i,:);
             end
+
             % Kuka movement with RMRC
-            s2 = lspb(0,1,steps1);                                                        % Trapezoidal trajectory scalar
+            s2 = lspb(0,1,steps1);                                          % Trapezoidal trajectory scalar
             for i = 1:steps1
                 % First segment
                 x2(:, i) = [(1 - s2(i)) * 1.0 + s2(i) * 2;
@@ -528,7 +524,6 @@ classdef A2 < handle
                     (1 - s2(i)) * 1.3 + s2(i) * 1.75];
                 theta2(:, i) = [0; 5 * pi / 9; 0];
             end
-
             for i = 1:steps1
                 % Second segment
                 x2(:, steps1 + i) = [(1 - s2(i)) * 2 + s2(i) * -0.375;
@@ -536,7 +531,6 @@ classdef A2 < handle
                     (1 - s2(i)) * 1.75 + s2(i) * 0.9];
                 theta2(:, steps1 + i) = [0; 5 * pi / 9; 0];
             end
-
             for i = 1:steps1
                 % Third segment
                 x2(:, 2 * steps1 + i) = [(1 - s2(i)) * -0.375 + s2(i) * 1.4;
@@ -544,23 +538,23 @@ classdef A2 < handle
                     (1 - s2(i)) * 0.9 + s2(i) * 1.3];
                 theta2(:, 2 * steps1 + i) = [0; 5 * pi / 9; 0];
             end
-
-            T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1)) x2(:,1); zeros(1,3) 1];    % Transformation of first point
-            q1 = zeros(1,6);                                                            % Initial guess for joint angles
-            qMatrix2(1,:) = self.titan.model.ikcon(T2,q1);                                   % Solve joint angles to achieve first waypoint
+            T2 = [rpy2r(theta2(1,1),theta2(2,1),theta2(3,1))...
+                x2(:,1); zeros(1,3) 1];                                     % Transformation of first point
+            q1 = zeros(1,6);                                                % Initial guess for joint angles
+            qMatrix2(1,:) = self.titan.model.ikcon(T2,q1);                  % Solve joint angles to achieve first waypoint
 
             % RMRC loop for Kuka Titan
             for i = 1:total_steps1-1
-                T2 = self.titan.model.fkine(qMatrix2(i,:)).T;                                % Get forward transformation at current joint state
-                deltaX2 = x2(:,i+1) - T2(1:3,4);                                        % Position error from next waypoint
-                Rd2 = rpy2r(theta2(1,i+1),theta2(2,i+1),theta2(3,i+1));                 % Desired rotation matrix
-                Ra2 = T2(1:3,1:3);                                                      % Current end-effector rotation matrix
-                Rdot2 = (1/deltaT1)*(Rd2 - Ra2);                                         % Rotation matrix error
-                S2 = Rdot2*Ra2';                                                        % Skew symmetric matrix
+                T2 = self.titan.model.fkine(qMatrix2(i,:)).T;               % Get forward transformation at current joint state
+                deltaX2 = x2(:,i+1) - T2(1:3,4);                            % Position error from next waypoint
+                Rd2 = rpy2r(theta2(1,i+1),theta2(2,i+1),theta2(3,i+1));     % Desired rotation matrix
+                Ra2 = T2(1:3,1:3);                                          % Current end-effector rotation matrix
+                Rdot2 = (1/deltaT1)*(Rd2 - Ra2);                            % Rotation matrix error
+                S2 = Rdot2*Ra2';                                            % Skew symmetric matrix
                 linear_velocity2 = (1/deltaT1)*deltaX2;
-                angular_velocity2 = [S2(3,2); S2(1,3); S2(2,1)];                        % Angular velocity
-                xdot2 = W1*[linear_velocity2; angular_velocity2];                        % End-effector velocity
-                J2 = self.titan.model.jacob0(qMatrix2(i,:));                                 % Jacobian at current state
+                angular_velocity2 = [S2(3,2); S2(1,3); S2(2,1)];            % Angular velocity
+                xdot2 = W1*[linear_velocity2; angular_velocity2];           % End-effector velocity
+                J2 = self.titan.model.jacob0(qMatrix2(i,:));                % Jacobian at current state
 
                 % Damped Least Squares (DLS) for low manipulability
                 m2 = sqrt(det(J2*J2'));
@@ -569,22 +563,22 @@ classdef A2 < handle
                 else
                     lambda = 0;
                 end
-                invJ2 = inv(J2'*J2 + lambda *eye(6))*J2';                               % DLS inverse Jacobian
-                qdot2(i,:) = (invJ2*xdot2)';                                            % Joint velocities
-                qMatrix2(i+1,:) = qMatrix2(i,:) + deltaT1*qdot2(i,:);                    % Update joint states
+                invJ2 = inv(J2'*J2 + lambda *eye(6))*J2';                   % DLS inverse Jacobian
+                qdot2(i,:) = (invJ2*xdot2)';                                % Joint velocities
+                qMatrix2(i+1,:) = qMatrix2(i,:) + deltaT1*qdot2(i,:);       % Update joint states
             end
 
             % Plot the movement
             hold on;
             for i = 1:total_steps1
-                self.titan.model.animate(qMatrix2(i,:));                                     % Animate Kuka Titan robot
-                self.ur3e.model.animate(qMatrix(i,:));                                       % Animate UR3e robot
+                self.titan.model.animate(qMatrix2(i,:));                    % Animate Kuka Titan robot
+                self.ur3e.model.animate(qMatrix(i,:));                      % Animate UR3e robot
                 drawnow();
             end
         end
 
-        function updateJoints(self, source, ~)                              % issue here is that source changes the number
-            sliderValue1 = get(source, 'Value');                            % for both of them so they both dance
+        function updateJoints(self, source, ~)
+            sliderValue1 = get(source, 'Value');                           
             sliderValue2 = get(source, 'Value');
             % disp(source);
             name = source.String;
@@ -751,7 +745,7 @@ classdef A2 < handle
             end
         end
 
-        function elipsoidOnRobotTitan(self) %fix center and radii
+        function elipsoidOnRobotTitan(self)                                 %fix center and radii
             centerPoints = [
                 0, 0, 0;       % Link 1
                 0, 0, 0.14;    % Link 2

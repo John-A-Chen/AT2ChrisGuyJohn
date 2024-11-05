@@ -34,52 +34,62 @@ vertices = get(flangeOrigin, 'Vertices');
 delete(flangeOrigin);
 
 numSteps = 50;
+t = linspace(0, 1, numSteps);  % Time vector for LSPB
 
 for i = 1:size(startPositions, 1)
     whereRobot = r.model.getpos();
     startTransform = transl(startPositions(i, :)) * trotx(pi);
     startJointAngles = r.model.ikcon(startTransform);
-    qmatrix = jtraj(whereRobot, startJointAngles, numSteps);
 
-    % Move to start position
+    % Move to start position using LSPB
+    for j = 1:r.model.n
+        qStart(:, j) = lspb(whereRobot(j), startJointAngles(j), t);
+    end
+
     for step = 1:numSteps
-        r.model.animate(qmatrix(step, :));
+        r.model.animate(qStart(step, :));
         pause(0.05);
     end
 
-    % Move to weld position
+    % Move to weld position using LSPB
     tWeld = eye(4) * transl(weldPosition(i, :)) * trotx(pi);
     qWeld = r.model.ikcon(tWeld);
-    qWeldMatrix = jtraj(startJointAngles, qWeld, numSteps);
+
+    for j = 1:r.model.n
+        qWeldMatrix(:, j) = lspb(startJointAngles(j), qWeld(j), t);
+    end
 
     for step = 1:numSteps
         r.model.animate(qWeldMatrix(step, :));
-                whereEndEffector = r.model.fkine(qEndMatrix(step, :));
+        whereEndEffector = r.model.fkine(qWeldMatrix(step, :));
 
-                trVertices = [vertices, ones(size(vertices, 1), 1)] * whereEndEffector.T';
-
-                set(hflange{i}, 'Vertices', trVertices(:, 1:3));
-drawnow
-        pause(0.05);
-    end
-
-    % Stay at weld position for 5 seconds
-    pause(5);  
-
-    % Move to end position
-    tEnd = eye(4) * transl(endPositions(i, :)) * trotx(pi);
-    qEnd = r.model.ikcon(tEnd);
-    qEndMatrix = jtraj(qWeld, qEnd, numSteps);
-
-    for step = 1:numSteps
-        r.model.animate(qEndMatrix(step, :));
-        whereEndEffector = r.model.fkine(qEndMatrix(step, :));
         trVertices = [vertices, ones(size(vertices, 1), 1)] * whereEndEffector.T';
-
         set(hflange{i}, 'Vertices', trVertices(:, 1:3));
         drawnow();
         pause(0.05);
     end
+
+    % Stay at weld position for 5 seconds
+    pause(5);
+
+    % Move to end position using LSPB
+    tEnd = eye(4) * transl(endPositions(i, :)) * trotx(pi);
+    qEnd = r.model.ikcon(tEnd);
+
+    for j = 1:r.model.n
+        qEndMatrix(:, j) = lspb(qWeld(j), qEnd(j), t);
+    end
+
+    for step = 1:numSteps
+        r.model.animate(qEndMatrix(step, :));
+        whereEndEffector = r.model.fkine(qEndMatrix(step, :));
+
+        trVertices = [vertices, ones(size(vertices, 1), 1)] * whereEndEffector.T';
+        set(hflange{i}, 'Vertices', trVertices(:, 1:3));
+        drawnow();
+        pause(0.05);
+    end
+
     delete(hflange{i});
     PlaceObject('flange.ply', endPositions(i, :));
 end
