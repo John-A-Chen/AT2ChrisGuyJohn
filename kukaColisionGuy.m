@@ -3,6 +3,7 @@ clear all
 clc
 
 stopped = false;
+            axis([-3, 3, -3, 3, 0, 3]);
 
 % 1.1) Set parameters for the simulation
 % Define the center points and radii for the ellipsoids for each link

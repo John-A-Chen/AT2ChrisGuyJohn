@@ -1,34 +1,36 @@
-% Set up the figure and axis
 clf;
 axis equal;
 hold on;
 view(3);
-axis([-5 4 -3 3 0 3]);
-xlim([-5 4]); ylim([-3 3]); zlim([0 3]);
-
-% Define the Kuka Titan robot
-r = KukaTitan(transl(-0.75, 0.5, 0.05));
-
-% Place the environment object
+titan = KukaTitan(transl(-0.75, 0.5, 0.05));
+ur3e = UR3e(transl(2.5, 1.75, 0.925));
+surf([-5, -5; 5, 5], ...
+    [-5, 5; -5, 5], [0, 0; 0, 0], ...
+    'CData', imread('concrete.jpg'), 'FaceColor', 'texturemap');
+surf([5, 5; 5, 5], ...
+    [-5, 5; -5, 5], [5, 5; 0, 0], ...
+    'CData', imread('IMG_7414.jpg'), 'FaceColor', 'texturemap');
+surf([-5, 5; -5, 5], ...
+    [5, 5; 5, 5], [5, 5; 0, 0], ...
+    'CData', imread('IMG_7413.jpg'), 'FaceColor', 'texturemap');
+light("Style","local","Position",[-10 -10 3]);
 PlaceObject('environment.PLY', [0, 0, 0]);
 
-% Define start, weld, and end positions for flange objects
 startPositions = ...
-[-1.0, 3.5, 1.3;
- -1.4, 3.5, 1.3;
- -1.8, 3.5, 1.3];
+    [-1.0, 3.5, 1.3;
+    -1.4, 3.5, 1.3;
+    -1.8, 3.5, 1.3];
 
 weldPosition = ...
-[2, 2, 1.75;
- 2, 2, 1.75;
- 2, 2, 1.75];
+    [2, 2, 1.75;
+    2, 2, 1.75;
+    2, 2, 1.75];
 
 endPositions = ...
-[-0.375, 2, 0.9;
- 0.0, 2, 0.9;
- 0.375, 2, 0.9];
+    [-0.375, 2, 0.9;
+    0.0, 2, 0.9;
+    0.375, 2, 0.9];
 
-% Time and Step Parameters
 t1 = 1;                                                         % Total time for one direction (s)
 deltaT1 = 0.02;                                                 % Control frequency
 steps1 = t1 / deltaT1;                                          % Number of steps for one direction
@@ -38,7 +40,6 @@ delta1 = 2 * pi / steps1;                                       % Small angle ch
 epsilon1 = 0.1;                                                 % Threshold for manipulability/Damped Least Squares
 W1 = diag([1 1 1 0.1 0.1 0.1]);                                 % Weighting matrix for the velocity vector
 
-% Place flange objects
 hflange = cell(1, size(startPositions, 1));
 for i = 1:size(startPositions, 1)
     hflange{i} = PlaceObject('flange.ply', startPositions(i, :));
@@ -72,7 +73,7 @@ end
 x = [x, x(:, end:-1:1)];                                       % Extend trajectory to move forward and then reverse
 
 T = [rpy2r(theta(1, 1), theta(2, 1), theta(3, 1)), ...
-     x(:, 1); zeros(1, 3) 1];                                  % Initial transformation
+    x(:, 1); zeros(1, 3) 1];                                  % Initial transformation
 q0 = zeros(1, 7);                                              % Initial guess for joint angles
 qMatrix(1, :) = ur3e.model.ikcon(T, q0);                      % Solve joint angles for first waypoint
 
@@ -120,7 +121,7 @@ end
 
 % Set up initial transformation and joint angles for Kuka
 T2 = [rpy2r(theta2(1, 1), theta2(2, 1), theta2(3, 1)), ...
-      x2(:, 1); zeros(1, 3) 1];                                % Transformation of first point
+    x2(:, 1); zeros(1, 3) 1];                                % Transformation of first point
 q1 = zeros(1, 6);                                             % Initial guess for joint angles
 qMatrix2(1, :) = titan.model.ikcon(T2, q1);                  % Solve joint angles to achieve first waypoint
 
@@ -150,10 +151,10 @@ for i = 1:total_steps1 - 1
 end
 
 % Visualize the simulation for both robots
+hold on;
 for i = 1:total_steps1
     ur3e.model.animate(qMatrix(i, :));                                % Plot UR3e motion
     titan.model.animate(qMatrix2(i, :));                             % Plot Kuka Titan motion
-    pause(deltaT1);                                         % Wait before the next step
+    drawnow();                                         % Wait before the next step
 end
 
-% Final clean-up if necessary

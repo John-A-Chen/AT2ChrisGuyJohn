@@ -472,7 +472,7 @@ classdef A2 < handle
             theta(2,:) = 5*pi/9;                                            % Pitch angle (fixed)
             theta(3,:) = pi;                                                % Yaw angle (fixed)
 
-            s1 = lspb(0, 4*pi, steps1);                                     % Define angular positions over time for one full circle
+            s1 = lspb(0, 2*pi, steps1);                                     % Define angular positions over time for one full circle
             for i = 1:steps1
                 x(1,i) = center(1) + radius * cos(s1(i));                   % x-coordinate for circular path
                 x(2,i) = center(2);                                         % y-coordinate (fixed at center)
@@ -519,7 +519,7 @@ classdef A2 < handle
             s2 = lspb(0,1,steps1);                                          % Trapezoidal trajectory scalar
             for i = 1:steps1
                 % First segment
-                x2(:, i) = [(1 - s2(i)) * 1.0 + s2(i) * 2;
+                x2(:, i) = [(1 - s2(i)) * -1.0 + s2(i) * 2;
                     (1 - s2(i)) * 3 + s2(i) * 2;
                     (1 - s2(i)) * 1.3 + s2(i) * 1.75];
                 theta2(:, i) = [0; 5 * pi / 9; 0];

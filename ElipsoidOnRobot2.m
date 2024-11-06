@@ -2,11 +2,6 @@ clear all;
 close all;
 clc;
 
-
-
-
-
-
 %%  making cube point cloud for obsticle
 % One side of the cube
 [Y,Z] = meshgrid(-0.5:0.05:0.5,-0.5:0.05:0.5);
@@ -56,14 +51,14 @@ radii = [
 
 
 % % Loop through each link to create and attach ellipsoids
-% for i = 2:6
-%     warning off;
-%     [X, Y, Z] = ellipsoid(centerPoints(i,1), centerPoints(i,2), centerPoints(i,3), radii(i,1), radii(i,2), radii(i,3), 6); % Create the ellipsoid for the current link
-%     robot.model.points{i} = [X(:),Y(:),Z(:)]; % defines points for elipsoid triangulation (comment out to encapsulate links with a bug)
-%     robot.model.faces{i} = delaunay(robot.model.points{i}); % creates elipsoid faces
-%     hold on;
-%     warning on;
-% end
+for i = 2:6
+    warning off;
+    [X, Y, Z] = ellipsoid(centerPoints(i,1), centerPoints(i,2), centerPoints(i,3), radii(i,1), radii(i,2), radii(i,3), 6); % Create the ellipsoid for the current link
+    robot.model.points{i} = [X(:),Y(:),Z(:)]; % defines points for elipsoid triangulation (comment out to encapsulate links with a bug)
+    robot.model.faces{i} = delaunay(robot.model.points{i}); % creates elipsoid faces
+    hold on;
+    warning on;
+end
 
 
 % Plot the robot
